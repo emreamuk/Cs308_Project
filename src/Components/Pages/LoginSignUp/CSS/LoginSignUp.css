@@ -51,3 +51,30 @@
   font-weight: 500;
   cursor: pointer;
 }
+.loginsignup-login span{
+    color: #ff4141;
+    font-weight: 600;
+}
+
+.loginsignup-agree{
+  display: flex;
+  justify-content: center;    
+  align-items: flex-start;    
+  gap: 12px;
+  margin-top: 20px;
+  color: #5c5c5c;
+  font-weight: 500;
+  max-width: 440px;             
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;             
+}
+
+.loginsignup-agree input[type="checkbox"]{
+  margin-top: 5px;             
+  flex: 0 0 auto;
+}
+.loginsignup-agree p{
+  margin: 0;
+  line-height: 1.4;
+}
