@@ -1,11 +1,14 @@
 
 import './App.css';
-import LoginSignUp from './Components/Pages/LoginSignUp/LoginSignUp';
+import Navbar from './Components/Navbar/Navbar';
+import LoginSignUp from './Components/Pages/LoginSignUp/LoginSignUp'
 
 function App() {
   return (
-    <div className="App"> 
+    <div> 
+        <Navbar/>
         <LoginSignUp/>
+        
     </div>
   );
 }
