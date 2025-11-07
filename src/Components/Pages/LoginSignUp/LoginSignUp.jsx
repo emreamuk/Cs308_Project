@@ -1,31 +1,24 @@
 import React from 'react' 
-import './LoginSignUp.css'
-import person from '../../Assets/person1.png';
-import email from '../../Assets/email1.png';
-import password from '../../Assets/password1.png';
+import './CSS/LoginSignUp.css'
 
 const LoginSignUp = () => {
     return(
-        <div className='container'>
-            <div className='header'>
-                <div className='text'>Login</div>
-                <div className='underline'></div>
-
+        <div className='loginsignup'>
+            <div className= "loginsignup-container">
+                <h1>Sign Up</h1>
+                <div className="loginsignup-fields">
+                    <input type = "text" placeholder='Your Name'/>
+                    <input type = "email" placeholder='Email Address'/>
+                    <input type = "password" placeholder='Password'/>
+                </div>
+                <button>Continue</button>
+                <p className="loginsignup-login">Already have an account? <span> Login here</span></p>
+                <div className="loginsignup-agree">
+                    <input type="checkbox" name='' id= ''/>
+                    <p>By continuing, i agree to the terms of use & privacy policy.</p>
+                </div>
             </div>
-            <div className='inputs'>
-            <div className='input'>
-                <img src={person} alt=''/>
-                <input type='text'/>
-            </div><div className='input'>
-                <img src={email} alt=''/>
-                <input type='email'/>
-            </div><div className='input'>
-                <img src={password} alt=''/>
-                <input type='password'/>
-            </div>
-            </div>
-
-        </div>
+        </div> 
     )
 }
 
