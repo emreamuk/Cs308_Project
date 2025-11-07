@@ -2,6 +2,7 @@ import React from 'react'
 import "./Navbar.css"
 import logo from '../Assets/logo.png'
 import cart_icon from '../Assets/cart_icon.png'
+import { Link } from 'react-router-dom'; 
 const Navbar = () => {
   return (
     <div className ='navbar'>
@@ -16,7 +17,9 @@ const Navbar = () => {
             <li>Games</li>
         </ul>
         <div className='nav-login-cart'>
+            <Link to="/login">
             <button>Login</button>
+            </Link>
             <img src= {cart_icon} alt="" />
         </div>
     </div>

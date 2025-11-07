@@ -1,23 +1,18 @@
-
-import './App.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './Components/Navbar/Navbar';
-import LoginSignUp from './Components/Pages/LoginSignUp/LoginSignUp'
-import Login from './Components/Pages/Login/Login'
-
-
+import Login from './Components/Pages/Login/Login';
+import LoginSignUp from './Components/Pages/LoginSignUp/LoginSignUp';
 
 function App() {
   return (
-    <div> 
-      {/* for now both components are rendered one below the other I’ll connect them later*/}
-        <Navbar/>
-        <LoginSignUp/>
-        <Navbar/>
-        <Login/>
-        
-    </div>
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<LoginSignUp />} />
+      </Routes>
+    </Router>
   );
 }
 
 export default App;
-

@@ -78,3 +78,19 @@
   margin: 0;
   line-height: 1.4;
 }
+
+.login-signup a,
+.loginsignup-signup a {
+  text-decoration: none;      /* removes the blue underline*/
+  color: #ff4141;           
+  font-weight: 600;
+  transition: color 0.2s ease; 
+  cursor: pointer;
+}
+
+/* hover effect */
+.login-signup a:hover,
+.loginsignup-signup a:hover {
+  color: #e63939;             
+  text-decoration: underline; 
+}

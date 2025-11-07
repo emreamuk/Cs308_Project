@@ -60,3 +60,18 @@
   cursor: pointer;
 }
 
+.login a,
+.loginsignup-login a {
+  text-decoration: none;      /* removes the blue underline*/
+  color: #ff4141;           
+  font-weight: 600;
+  transition: color 0.2s ease; 
+  cursor: pointer;
+}
+
+/* hover effect */
+.login a:hover,
+.loginsignup-login a:hover {
+  color: #e63939;             
+  text-decoration: underline; 
+}
