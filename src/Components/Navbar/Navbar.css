@@ -11,8 +11,11 @@
 .nav-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  text-decoration: none; 
+  color: inherit;        
 }
+
 
 .nav-logo img {
   width: 120px;      

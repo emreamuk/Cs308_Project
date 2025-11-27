@@ -7,38 +7,49 @@ import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   return (
-    <div className ='navbar'>
-        <div className='nav-logo'>
-            <img src={logo} alt=""/>
-            <p>AO Comics</p>
-        </div>
+    <div className='navbar'>
 
-        <ul className="nav-menu">
-            <li>Shop</li>
-            <li>Comics</li>
-            <li>Books</li>
-            <li>Games</li>
-        </ul>
-        
-    <div className='nav-login-cart'>
-                <Link to="/login">
-                    <button>Login</button>
-                </Link>
+      {/* Logo + AO Comics → Home'a götürür */}
+      <Link to="/" className='nav-logo'>
+        <img src={logo} alt="Logo" />
+        <p>AO Comics</p>
+      </Link>
 
-                {/* Search Icon */}
-                <img 
-                    className="nav-search-icon" 
-                    src={search_icon} 
-                    alt="Search" 
-                />
+      {/* Menü */}
+      <ul className="nav-menu">
+        <li>Shop</li>
+        <li>Comics</li>
+        <li>Books</li>
+        <li>Games</li>
+      </ul>
+      
+      {/* Sağ taraf */}
+      <div className='nav-login-cart'>
 
-                {/* Cart Icon */}
-                <img 
-                    className="nav-cart-icon" 
-                    src={cart_icon} 
-                    alt="Cart" 
-                />
-            </div>
+        {/* Login */}
+        <Link to="/login">
+          <button className="nav-login-btn">Login</button>
+        </Link>
+
+        {/* Search */}
+        <Link to="/search">
+          <img 
+            className="nav-icon nav-search-icon"
+            src={search_icon}
+            alt="Search"
+          />
+        </Link>
+
+        {/* Cart */}
+        <Link to="/cart">
+          <img
+            className="nav-icon nav-cart-icon"
+            src={cart_icon}
+            alt="Cart"
+          />
+        </Link>
+
+      </div>
     </div>
   )
 }

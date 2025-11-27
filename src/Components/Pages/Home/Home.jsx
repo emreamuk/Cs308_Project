@@ -28,7 +28,7 @@ export default function Home() {
               <img src={c.img} alt={c.title} />
               <h3>{c.title}</h3>
               <p>{c.brand}</p>
-              <button>Read</button>
+              <button>Purchase</button>
             </div>
           ))}
         </div>
