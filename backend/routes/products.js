@@ -3,10 +3,29 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 
-// Get all products
+// ← MODIFY THIS ROUTE - Add filtering and sorting
+// Get all products with filtering and sorting
 router.get('/', async (req, res) => {
   try {
-    const products = await Product.find();
+    const { sort, category } = req.query;
+    
+    // Build filter
+    let filter = {};
+    if (category) {
+      filter.category = category;
+    }
+    
+    // Build sort
+    let sortOption = {};
+    if (sort === 'price-asc') sortOption = { price: 1 };
+    else if (sort === 'price-desc') sortOption = { price: -1 };
+    else if (sort === 'rating') sortOption = { rating: -1 };
+    else if (sort === 'popular') sortOption = { numReviews: -1 };
+    
+    console.log('Filter:', filter);
+    console.log('Sort:', sortOption);
+    
+    const products = await Product.find(filter).sort(sortOption);
     res.json(products);
   } catch (error) {
     console.error('Get products error:', error);
