@@ -14,6 +14,27 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Search products
+router.get('/search', async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) {
+      return res.status(400).json({ message: 'Search query required' });
+    }
+    
+    const products = await Product.find({
+      $or: [
+        { name: { $regex: query, $options: 'i' } },
+        { description: { $regex: query, $options: 'i' } }
+      ]
+    });
+    res.json(products);
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get single product
 router.get('/:id', async (req, res) => {
   try {
