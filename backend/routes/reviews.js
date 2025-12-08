@@ -166,6 +166,29 @@ router.get('/pending', auth, async (req, res) => {
   }
 });
 
+// Approve review (product manager only)
+router.patch('/:id/approve', auth, async (req, res) => {
+  try {
+    // TODO: Add role check for product manager
+    
+    const review = await Review.findById(req.params.id);
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    review.approved = true;
+    await review.save();
+
+    // Update product rating
+    await updateProductRating(review.product);
+
+    res.json({ message: 'Review approved', review });
+  } catch (error) {
+    console.error('Approve review error:', error);
+    res.status(500).json({ message: 'Server error while approving review' });
+  }
+});
+
 // Helper function to update product rating
 async function updateProductRating(productId) {
   try {
