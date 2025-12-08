@@ -84,4 +84,28 @@ router.get('/my-orders', auth, async (req, res) => {
   }
 });
 
+// Get single order
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate('orderItems.product')
+      .populate('user', 'name email');
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Check if order belongs to user (or user is admin)
+    if (order.user._id.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized to view this order' });
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Get order error:', error);
+    res.status(500).json({ message: 'Server error while fetching order' });
+  }
+});
+
+
 module.exports = router;
