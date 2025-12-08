@@ -3,7 +3,6 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 
-// ← MODIFY THIS ROUTE - Add filtering and sorting
 // Get all products with filtering and sorting
 router.get('/', async (req, res) => {
   try {
@@ -75,6 +74,18 @@ router.get('/:id', async (req, res) => {
     res.json(product);
   } catch (error) {
     console.error('Get product error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Add product (for now, no auth required - we'll add admin auth later)
+router.post('/', async (req, res) => {
+  try {
+    const product = new Product(req.body);
+    await product.save();
+    res.status(201).json(product);
+  } catch (error) {
+    console.error('Create product error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
