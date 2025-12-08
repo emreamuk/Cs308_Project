@@ -107,5 +107,49 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
+// Cancel order (only if status is 'processing')
+router.post('/:id/cancel', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Check if order belongs to user
+    if (order.user.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    // Can only cancel if processing
+    if (order.status !== 'processing') {
+      return res.status(400).json({ 
+        message: 'Can only cancel orders that are in processing status' 
+      });
+    }
+
+    // Restore stock
+    for (let item of order.orderItems) {
+      const product = await Product.findById(item.product);
+      if (product) {
+        product.quantityInStock += item.quantity;
+        await product.save();
+      }
+    }
+
+    // Update order status
+    order.status = 'cancelled';
+    await order.save();
+
+    res.json({
+      message: 'Order cancelled successfully',
+      order
+    });
+  } catch (error) {
+    console.error('Cancel order error:', error);
+    res.status(500).json({ message: 'Server error while cancelling order' });
+  }
+});
+
 
 module.exports = router;
