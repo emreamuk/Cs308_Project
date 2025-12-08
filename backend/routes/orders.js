@@ -1,0 +1,185 @@
+// backend/routes/orders.js
+const express = require('express');
+const router = express.Router();
+const Order = require('../models/Order');
+const Product = require('../models/Product');
+const auth = require('../middleware/auth');
+
+// Create new order
+router.post('/', auth, async (req, res) => {
+  try {
+    const { orderItems, totalPrice, deliveryAddress } = req.body;
+
+    // Validate input
+    if (!orderItems || orderItems.length === 0) {
+      return res.status(400).json({ message: 'No order items provided' });
+    }
+
+    if (!deliveryAddress) {
+      return res.status(400).json({ message: 'Delivery address is required' });
+    }
+
+    // Check stock and prepare order items
+    const validatedItems = [];
+    
+    for (let item of orderItems) {
+      const product = await Product.findById(item.product);
+      
+      if (!product) {
+        return res.status(404).json({ 
+          message: `Product not found: ${item.product}` 
+        });
+      }
+
+      if (product.quantityInStock < item.quantity) {
+        return res.status(400).json({ 
+          message: `Not enough stock for ${product.name}. Only ${product.quantityInStock} available.` 
+        });
+      }
+
+      // Reduce stock
+      product.quantityInStock -= item.quantity;
+      await product.save();
+
+      // Add to validated items
+      validatedItems.push({
+        product: product._id,
+        name: product.name,
+        quantity: item.quantity,
+        price: item.price
+      });
+    }
+
+    // Create order
+    const order = new Order({
+      user: req.user.id,
+      orderItems: validatedItems,
+      totalPrice,
+      deliveryAddress,
+      status: 'processing'
+    });
+
+    await order.save();
+
+    res.status(201).json({
+      message: 'Order placed successfully',
+      order
+    });
+
+  } catch (error) {
+    console.error('Create order error:', error);
+    res.status(500).json({ message: 'Server error while creating order' });
+  }
+});
+
+// Get user's orders
+router.get('/my-orders', auth, async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user.id })
+      .populate('orderItems.product')
+      .sort({ createdAt: -1 });
+
+    res.json(orders);
+  } catch (error) {
+    console.error('Get orders error:', error);
+    res.status(500).json({ message: 'Server error while fetching orders' });
+  }
+});
+
+// Get single order
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate('orderItems.product')
+      .populate('user', 'name email');
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Check if order belongs to user (or user is admin)
+    if (order.user._id.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized to view this order' });
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Get order error:', error);
+    res.status(500).json({ message: 'Server error while fetching order' });
+  }
+});
+
+// Update order status (for product manager/admin)
+router.patch('/:id/status', auth, async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!['processing', 'in-transit', 'delivered', 'cancelled'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    res.json({
+      message: 'Order status updated',
+      order
+    });
+  } catch (error) {
+    console.error('Update order error:', error);
+    res.status(500).json({ message: 'Server error while updating order' });
+  }
+});
+
+// Cancel order (only if status is 'processing')
+router.post('/:id/cancel', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Check if order belongs to user
+    if (order.user.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    // Can only cancel if processing
+    if (order.status !== 'processing') {
+      return res.status(400).json({ 
+        message: 'Can only cancel orders that are in processing status' 
+      });
+    }
+
+    // Restore stock
+    for (let item of order.orderItems) {
+      const product = await Product.findById(item.product);
+      if (product) {
+        product.quantityInStock += item.quantity;
+        await product.save();
+      }
+    }
+
+    // Update order status
+    order.status = 'cancelled';
+    await order.save();
+
+    res.json({
+      message: 'Order cancelled successfully',
+      order
+    });
+  } catch (error) {
+    console.error('Cancel order error:', error);
+    res.status(500).json({ message: 'Server error while cancelling order' });
+  }
+});
+
+module.exports = router;
