@@ -35,6 +35,17 @@ router.get('/search', async (req, res) => {
   }
 });
 
+// Get products by category
+router.get('/category/:category', async (req, res) => {
+  try {
+    const products = await Product.find({ category: req.params.category });
+    res.json(products);
+  } catch (error) {
+    console.error('Get category error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get single product
 router.get('/:id', async (req, res) => {
   try {
