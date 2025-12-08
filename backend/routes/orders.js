@@ -151,5 +151,33 @@ router.post('/:id/cancel', auth, async (req, res) => {
   }
 });
 
+// Update order status (for product manager/admin)
+router.patch('/:id/status', auth, async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!['processing', 'in-transit', 'delivered', 'cancelled'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    res.json({
+      message: 'Order status updated',
+      order
+    });
+  } catch (error) {
+    console.error('Update order error:', error);
+    res.status(500).json({ message: 'Server error while updating order' });
+  }
+});
 
 module.exports = router;
