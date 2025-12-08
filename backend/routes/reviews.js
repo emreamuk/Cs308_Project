@@ -57,7 +57,6 @@ router.post('/', auth, async (req, res) => {
 
     await review.save();
 
-    // Update product rating (only approved reviews count)
     await updateProductRating(productId);
 
     res.status(201).json({
@@ -120,7 +119,6 @@ router.post('/rating', auth, async (req, res) => {
       await review.save();
     }
 
-    // Update product rating immediately
     await updateProductRating(productId);
 
     res.json({ message: 'Rating submitted successfully' });
@@ -131,10 +129,27 @@ router.post('/rating', auth, async (req, res) => {
   }
 });
 
+// Get reviews for a product (only approved reviews with comments)
+router.get('/product/:productId', async (req, res) => {
+  try {
+    const reviews = await Review.find({ 
+      product: req.params.productId,
+      approved: true,
+      comment: { $ne: 'Rating only' } // Exclude rating-only reviews
+    })
+    .populate('user', 'name')
+    .sort({ createdAt: -1 });
+
+    res.json(reviews);
+  } catch (error) {
+    console.error('Get reviews error:', error);
+    res.status(500).json({ message: 'Server error while fetching reviews' });
+  }
+});
+
 // Helper function to update product rating
 async function updateProductRating(productId) {
   try {
-    // Get all approved reviews for this product
     const reviews = await Review.find({ 
       product: productId,
       approved: true
@@ -148,11 +163,9 @@ async function updateProductRating(productId) {
       return;
     }
 
-    // Calculate average rating
     const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
     const avgRating = totalRating / reviews.length;
 
-    // Update product
     await Product.findByIdAndUpdate(productId, {
       rating: avgRating,
       numReviews: reviews.length
