@@ -17,8 +17,16 @@ app.use(cors({
 app.use(express.json());
 
 // ROUTES
-const authRoutes = require('./routes/auth');           
-app.use('/api/auth', authRoutes);                      
+const authRoutes = require('./routes/auth');
+const productRoutes = require('./routes/products');
+const orderRoutes = require('./routes/orders');
+const reviewRoutes = require('./routes/reviews'); 
+
+app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/reviews', reviewRoutes);
+
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend is working!' });
 });
