@@ -135,7 +135,7 @@ router.get('/product/:productId', async (req, res) => {
     const reviews = await Review.find({ 
       product: req.params.productId,
       approved: true,
-      comment: { $ne: 'Rating only' } // Exclude rating-only reviews
+      comment: { $ne: 'Rating only' }
     })
     .populate('user', 'name')
     .sort({ createdAt: -1 });
@@ -143,6 +143,25 @@ router.get('/product/:productId', async (req, res) => {
     res.json(reviews);
   } catch (error) {
     console.error('Get reviews error:', error);
+    res.status(500).json({ message: 'Server error while fetching reviews' });
+  }
+});
+
+// Get all pending reviews (for product manager)
+router.get('/pending', auth, async (req, res) => {
+  try {
+    // TODO: Add role check for product manager
+    const reviews = await Review.find({ 
+      approved: false,
+      comment: { $ne: 'Rating only' }
+    })
+    .populate('user', 'name')
+    .populate('product', 'name')
+    .sort({ createdAt: -1 });
+
+    res.json(reviews);
+  } catch (error) {
+    console.error('Get pending reviews error:', error);
     res.status(500).json({ message: 'Server error while fetching reviews' });
   }
 });
