@@ -71,4 +71,17 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+router.get('/my-orders', auth, async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user.id })
+      .populate('orderItems.product')
+      .sort({ createdAt: -1 });
+
+    res.json(orders);
+  } catch (error) {
+    console.error('Get orders error:', error);
+    res.status(500).json({ message: 'Server error while fetching orders' });
+  }
+});
+
 module.exports = router;
