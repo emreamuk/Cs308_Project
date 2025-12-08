@@ -73,4 +73,67 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+// Submit rating only (no approval needed - directly updates product)
+router.post('/rating', auth, async (req, res) => {
+  try {
+    const { productId, rating } = req.body;
+
+    // Validate input
+    if (!productId || !rating) {
+      return res.status(400).json({ message: 'Please provide productId and rating' });
+    }
+
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Rating must be between 1 and 5' });
+    }
+
+    // Check if product exists
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Check if user has purchased and received this product
+    const order = await Order.findOne({
+      user: req.user.id,
+      'orderItems.product': productId,
+      status: 'delivered'
+    });
+
+    if (!order) {
+      return res.status(400).json({ 
+        message: 'You can only rate products you have purchased and received' 
+      });
+    }
+
+    // Check if user already reviewed (has rating)
+    const existingReview = await Review.findOne({
+      product: productId,
+      user: req.user.id
+    });
+
+    if (existingReview) {
+      // Update existing rating
+      existingReview.rating = rating;
+      await existingReview.save();
+    } else {
+      // Create new review with rating only (no comment)
+      const review = new Review({
+        product: productId,
+        user: req.user.id,
+        rating,
+        comment: 'Rating only', // Placeholder
+        approved: true // Auto-approve rating-only
+      });
+      await review.save();
+    }
+
+    res.json({ message: 'Rating submitted successfully' });
+
+  } catch (error) {
+    console.error('Submit rating error:', error);
+    res.status(500).json({ message: 'Server error while submitting rating' });
+  }
+});
+
 module.exports = router;
