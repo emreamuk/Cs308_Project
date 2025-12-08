@@ -189,6 +189,29 @@ router.patch('/:id/approve', auth, async (req, res) => {
   }
 });
 
+// Reject/Delete review (product manager only)
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    // TODO: Add role check for product manager
+    
+    const review = await Review.findById(req.params.id);
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    const productId = review.product;
+    await review.deleteOne();
+
+    // Update product rating after deletion
+    await updateProductRating(productId);
+
+    res.json({ message: 'Review deleted' });
+  } catch (error) {
+    console.error('Delete review error:', error);
+    res.status(500).json({ message: 'Server error while deleting review' });
+  }
+});
+
 // Helper function to update product rating
 async function updateProductRating(productId) {
   try {
