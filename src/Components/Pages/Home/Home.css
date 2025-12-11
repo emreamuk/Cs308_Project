@@ -1,6 +1,77 @@
 .comics-section { background:#fff; padding:4vw 6vw; }
 .comics-section h2 { color:#222; font-size:2vw; margin-bottom:2vw; }
 
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2vw;
+}
+
+.filters {
+  display: flex;
+  gap: 15px;
+}
+
+.filter-select {
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  background: white;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #ff4141;
+}
+
+.apply-btn, .clear-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.apply-btn {
+  background: #ff4141;
+  color: white;
+}
+
+.apply-btn:hover {
+  background: #e33636;
+}
+
+.clear-btn {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.clear-btn:hover {
+  background: #e0e0e0;
+}
+
+@media (max-width: 768px) {
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .filters {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .filter-select {
+    width: 100%;
+  }
+}
+
 .comics-grid {
   display:flex; gap:2vw; flex-wrap:wrap; justify-content:flex-start;
 }
@@ -20,3 +91,13 @@
   border-radius:30px; cursor:pointer; font-weight:600; transition:background .3s;
 }
 .comic-card button:hover { background:#e02a2a; }
+
+.comic-card button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.comic-card button:disabled:hover {
+  background: #ccc;
+  transform: none;
+}
