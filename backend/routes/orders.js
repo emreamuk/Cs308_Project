@@ -5,6 +5,7 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { checkRole } = require('../middleware/roleAuth');
 const { sendOrderConfirmation } = require('../services/emailService');
 
 // Create new order
@@ -104,6 +105,21 @@ router.get('/my-orders', auth, async (req, res) => {
     res.json(orders);
   } catch (error) {
     console.error('Get orders error:', error);
+    res.status(500).json({ message: 'Server error while fetching orders' });
+  }
+});
+
+// Get all orders (for product manager) - ADD THIS NEW ROUTE
+router.get('/all', auth, checkRole('product_manager'), async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .populate('orderItems.product')
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.json(orders);
+  } catch (error) {
+    console.error('Get all orders error:', error);
     res.status(500).json({ message: 'Server error while fetching orders' });
   }
 });
