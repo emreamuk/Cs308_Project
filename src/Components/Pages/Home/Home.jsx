@@ -52,8 +52,11 @@ useEffect(() => {
   };
 
   const handleAddToCart = (product) => {
-    addToCart(product);
-    alert(`${product.name} added to cart!`);
+    const success = addToCart(product); // Capture return value
+    
+    if (success) { // Only show success if it worked
+      alert(`${product.name} added to cart!`);
+  }
   };
 
   if (loading) {
