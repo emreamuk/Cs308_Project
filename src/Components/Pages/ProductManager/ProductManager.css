@@ -15,6 +15,45 @@
   margin-bottom: 30px;
 }
 
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #ddd;
+}
+
+.tab-button {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  color: #666;
+  transition: all 0.3s;
+}
+
+.tab-button:hover {
+  color: #ff4141;
+}
+
+.tab-button.active {
+  color: #ff4141;
+  border-bottom-color: #ff4141;
+}
+
+.tab-content {
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* No pending state */
 .no-pending {
   text-align: center;
   padding: 60px 20px;
@@ -27,6 +66,7 @@
   color: #0ea5e9;
 }
 
+/* Review Cards */
 .pending-reviews-list {
   display: flex;
   flex-direction: column;
@@ -119,18 +159,126 @@
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
+/* Order Management Cards */
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.order-management-card {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border-left: 4px solid #2196F3;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.order-header h3 {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+.order-date {
+  color: #777;
+  font-size: 14px;
+}
+
+.order-status-badge {
+  display: inline-block;
+}
+
+.order-details {
+  margin-bottom: 20px;
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.order-details h4 {
+  margin-bottom: 10px;
+}
+
+.order-details p {
+  margin: 5px 0;
+  color: #333;
+}
+
+.order-actions {
+  display: flex;
+  gap: 15px;
+}
+
+.status-btn {
+  padding: 12px 30px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: white;
+}
+
+.in-transit-btn {
+  background: #2196F3;
+}
+
+.in-transit-btn:hover {
+  background: #1976D2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.delivered-btn {
+  background: #4CAF50;
+}
+
+.delivered-btn:hover {
+  background: #388E3C;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+/* Responsive */
 @media (max-width: 768px) {
-  .review-header {
+  .review-header,
+  .order-header {
     flex-direction: column;
     gap: 10px;
   }
 
-  .review-actions {
+  .review-actions,
+  .order-actions {
     flex-direction: column;
   }
 
   .approve-btn,
-  .reject-btn {
+  .reject-btn,
+  .status-btn {
     width: 100%;
+  }
+
+  .tabs {
+    flex-direction: column;
+  }
+
+  .tab-button {
+    border-bottom: 1px solid #ddd;
+    border-left: 3px solid transparent;
+  }
+
+  .tab-button.active {
+    border-left-color: #ff4141;
+    border-bottom-color: #ddd;
   }
 }
