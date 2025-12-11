@@ -1,3 +1,4 @@
+// src/Components/Pages/Cart/Cart.jsx
 import React, { useContext } from "react";
 import "./Cart.css";
 import { CartContext } from "../../../context/CartContext";
@@ -13,7 +14,8 @@ const Cart = () => {
     title: item.name,
     description: item.description,
     qty: item.qty,
-    price: item.price
+    price: item.price,
+    quantityInStock: item.quantityInStock
   }));
 
   return (
@@ -38,11 +40,32 @@ const Cart = () => {
                 <div className="cart-item-info">
                   <h2>{item.title}</h2>
                   <p className="cart-item-meta">{item.description}</p>
+                  
+                  {/* ADD STOCK INFO */}
+                  <p style={{ 
+                    fontSize: '13px', 
+                    color: item.qty >= item.quantityInStock ? '#f44336' : '#666',
+                    marginTop: '5px'
+                  }}>
+                    {item.quantityInStock} available in stock
+                    {item.qty >= item.quantityInStock && ' (Max reached)'}
+                  </p>
+                  
                   <div className="cart-item-controls">
                     <div className="cart-qty">
                       <button onClick={() => decreaseQty(item.id)}>-</button>
                       <span>{item.qty}</span>
-                      <button onClick={() => increaseQty(item.id)}>+</button>
+                      {/* DISABLE + BUTTON IF AT MAX STOCK */}
+                      <button 
+                        onClick={() => increaseQty(item.id)}
+                        disabled={item.qty >= item.quantityInStock}
+                        style={{
+                          cursor: item.qty >= item.quantityInStock ? 'not-allowed' : 'pointer',
+                          opacity: item.qty >= item.quantityInStock ? 0.5 : 1
+                        }}
+                      >
+                        +
+                      </button>
                     </div>
                     <p className="cart-price">${(item.price * item.qty).toFixed(2)}</p>
                     <button className="cart-remove" onClick={() => removeFromCart(item.id)}>

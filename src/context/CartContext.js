@@ -28,22 +28,48 @@ export const CartProvider = ({ children }) => {
     }
   }, [cartItems, isLoaded]);
 
+  // UPDATED: Check stock limit before adding
   const addToCart = (product) => {
     const existingItem = cartItems.find(item => item._id === product._id);
+    
     if (existingItem) {
+      // Check if we can add one more
+      if (existingItem.qty >= product.quantityInStock) {
+        alert(`Cannot add more. Only ${product.quantityInStock} items in stock.`);
+        return false; // Indicate failure
+      }
+      
       setCartItems(cartItems.map(item =>
         item._id === product._id ? { ...item, qty: item.qty + 1 } : item
       ));
     } else {
+      // First time adding - check if stock available
+      if (product.quantityInStock < 1) {
+        alert('This product is out of stock.');
+        return false;
+      }
+      
       setCartItems([...cartItems, { ...product, qty: 1 }]);
     }
+    return true; // Indicate success
   };
 
   const removeFromCart = (productId) => {
     setCartItems(cartItems.filter(item => item._id !== productId));
   };
 
+  // ✅ UPDATED: Check stock limit before increasing
   const increaseQty = (productId) => {
+    const item = cartItems.find(item => item._id === productId);
+    
+    if (!item) return;
+    
+    // Check stock limit
+    if (item.qty >= item.quantityInStock) {
+      alert(`Cannot add more. Only ${item.quantityInStock} items in stock.`);
+      return;
+    }
+    
     setCartItems(cartItems.map(item =>
       item._id === productId ? { ...item, qty: item.qty + 1 } : item
     ));

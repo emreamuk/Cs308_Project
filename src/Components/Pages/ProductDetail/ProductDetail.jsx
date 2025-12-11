@@ -42,8 +42,11 @@ useEffect(() => {
 }, [id]);
 
   const handleAddToCart = () => {
-    addToCart(product);
-    alert(`${product.name} added to cart!`);
+    const success = addToCart(product); // CHANGED: Capture return value
+    
+    if (success) { // CHANGED: Only show success if it worked
+      alert(`${product.name} added to cart!`);
+    }
   };
 
   const handleSubmitReview = async (e) => {
