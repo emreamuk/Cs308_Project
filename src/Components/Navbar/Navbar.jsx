@@ -39,7 +39,9 @@ const Navbar = () => {
         <li onClick={() => navigate('/')}>Shop</li>
         <li onClick={() => navigate('/search')}>Search</li>
         <li onClick={() => navigate('/orders')}>My Orders</li>
-        <li onClick={() => navigate('/product-manager')}>Manager</li>
+        {user && user.role === 'product_manager' && (
+          <li onClick={() => navigate('/product-manager')}>Manager</li>
+        )}
       </ul>
 
       <div className='nav-login-cart'>
