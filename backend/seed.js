@@ -1,7 +1,7 @@
 // backend/seed.js
 const mongoose = require('mongoose');
 const Product = require('./models/Product');
-require('dotenv').config();
+require('dotenv').config({ path: './backend/.env' });
 
 const products = [
   {
@@ -181,7 +181,7 @@ const products = [
     price: 2.99,
     warrantyStatus: "30-day return",
     distributorInfo: "IMAGE Comics",
-    category: "Image Comics",
+    category: "Image",
     imageUrl: "assets/comic13.jpg",
     rating: 0,
     numReviews: 0
@@ -195,7 +195,7 @@ const products = [
     price: 3.99,
     warrantyStatus: "30-day return",
     distributorInfo: "IMAGE Comics",
-    category: "Image Comics",
+    category: "Image",
     imageUrl: "assets/comic14.jpg",
     rating: 0,
     numReviews: 0
@@ -209,7 +209,7 @@ const products = [
     price: 3.99,
     warrantyStatus: "30-day return",
     distributorInfo: "IMAGE Comics",
-    category: "Image Comics",
+    category: "Image",
     imageUrl: "assets/comic15.jpg",
     rating: 0,
     numReviews: 0
@@ -223,7 +223,7 @@ const products = [
     price: 3.99,
     warrantyStatus: "30-day return",
     distributorInfo: "IMAGE Comics",
-    category: "Image Comics",
+    category: "Image",
     imageUrl: "assets/comic16.jpg",
     rating: 0,
     numReviews: 0
@@ -237,7 +237,7 @@ const products = [
     price: 3.99,
     warrantyStatus: "30-day return",
     distributorInfo: "IMAGE Comics",
-    category: "Image Comics",
+    category: "Image",
     imageUrl: "assets/comic17.jpg",
     rating: 0,
     numReviews: 0
@@ -251,7 +251,7 @@ const products = [
     price: 3.99,
     warrantyStatus: "30-day return",
     distributorInfo: "IMAGE Comics",
-    category: "Image Comics",
+    category: "Image",
     imageUrl: "assets/comic18.jpg",
     rating: 0,
     numReviews: 0
@@ -265,7 +265,7 @@ const products = [
     price: 3.99,
     warrantyStatus: "30-day return",
     distributorInfo: "IMAGE Comics",
-    category: "Image Comics",
+    category: "Image",
     imageUrl: "assets/comic19.jpg",
     rating: 0,
     numReviews: 0
@@ -279,7 +279,7 @@ const products = [
     price: 3.99,
     warrantyStatus: "30-day return",
     distributorInfo: "IMAGE Comics",
-    category: "Image Comics",
+    category: "Image",
     imageUrl: "assets/comic20.jpg",
     rating: 0,
     numReviews: 0
