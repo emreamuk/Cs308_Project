@@ -56,6 +56,7 @@ const Invoice = () => {
     };
 
     submitOrder();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // ✅ Empty dependency array - only run once
 
   const handlePrint = () => {
