@@ -40,9 +40,6 @@ const Navbar = () => {
         <li onClick={() => navigate('/search')}>Search</li>
         <li onClick={() => navigate('/orders')}>My Orders</li>
         <li onClick={() => navigate('/product-manager')}>Manager</li>
-        <li>Comics</li>
-        <li>Books</li>
-        <li>Games</li>
       </ul>
 
       <div className='nav-login-cart'>
