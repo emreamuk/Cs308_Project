@@ -4,11 +4,7 @@ import "./Header.css";
 const Header = () => {
   return (
     <div className="header">
-        <div className="header-contents">
-            <h2>Comics</h2>
-            <p>Comics???</p>
-            <button>Start Reading</button>
-        </div>
+        
     </div>
   )
 };
