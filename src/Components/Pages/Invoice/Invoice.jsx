@@ -1,5 +1,5 @@
 // src/Components/Pages/Invoice/Invoice.jsx
-import React, { useEffect, useContext } from 'react';
+import React, { useEffect, useContext, useRef } from 'react'; // ✅ Add useRef
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CartContext } from '../../../context/CartContext';
 import API from '../../../services/api';
@@ -10,18 +10,31 @@ const Invoice = () => {
   const navigate = useNavigate();
   const { clearCart } = useContext(CartContext);
   const { orderData, paymentDetails } = location.state || {};
+  
+  // ✅ ADD THIS - Prevent duplicate submissions
+  const orderSubmitted = useRef(false);
 
   useEffect(() => {
-    // Submit order to backend after successful payment
+    // ✅ CHECK if already submitted
+    if (orderSubmitted.current) {
+      console.log('Order already submitted, skipping...');
+      return;
+    }
+
     const submitOrder = async () => {
       if (!orderData) return;
 
       try {
+        // ✅ MARK as submitted BEFORE API call
+        orderSubmitted.current = true;
+
         const orderItems = orderData.items.map(item => ({
           product: item.id,
           quantity: item.qty,
           price: item.price
         }));
+
+        console.log('Submitting order with items:', orderItems); // ✅ Debug log
 
         const response = await API.post('/orders', {
           orderItems,
@@ -29,26 +42,27 @@ const Invoice = () => {
           deliveryAddress: orderData.address
         });
 
-        console.log('Order created:', response.data);
+        console.log('✅ Order created successfully:', response.data);
         
         // Clear cart after successful order
         clearCart();
         
       } catch (error) {
-        console.error('Order submission error:', error);
+        console.error('❌ Order submission error:', error);
+        // ✅ Reset flag if order failed
+        orderSubmitted.current = false;
         alert('Order was paid but there was an error saving it. Please contact support.');
       }
     };
 
     submitOrder();
-  }, [orderData, clearCart]);
+  }, []); // ✅ Empty dependency array - only run once
 
   const handlePrint = () => {
     window.print();
   };
 
   const handleDownloadPDF = () => {
-    // For demo, just use browser print to PDF
     alert('Please use Print > Save as PDF in your browser');
     window.print();
   };
