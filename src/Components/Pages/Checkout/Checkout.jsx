@@ -2,17 +2,14 @@
 import React, { useState, useContext } from 'react';
 import { CartContext } from '../../../context/CartContext';
 import { useNavigate } from 'react-router-dom';
-import API from '../../../services/api';  // ← ADD THIS
 import './Checkout.css';
 
 const Checkout = () => {
-  const { cartItems, getCartTotal, clearCart } = useContext(CartContext);
+  const { cartItems, getCartTotal } = useContext(CartContext);
   const [address, setAddress] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');  // ← ADD THIS
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     
     const token = localStorage.getItem('token');
@@ -27,35 +24,20 @@ const Checkout = () => {
       return;
     }
 
-    setLoading(true);
-    setError('');
+    // Prepare order data and go to payment
+    const orderData = {
+      items: cartItems.map(item => ({
+        id: item._id,
+        name: item.name,
+        price: item.price,
+        qty: item.qty
+      })),
+      total: getCartTotal(),
+      address: address
+    };
 
-    try {
-      // Prepare order items
-      const orderItems = cartItems.map(item => ({
-        product: item._id,
-        quantity: item.qty,
-        price: item.price
-      }));
-
-      // Send order to backend
-      const response = await API.post('/orders', {
-        orderItems,
-        totalPrice: getCartTotal(),
-        deliveryAddress: address
-      });
-
-      // Success!
-      alert(`Order #${response.data.order._id.slice(-8)} placed successfully!`);
-      clearCart();
-      navigate('/orders');  // Redirect to orders page
-      
-    } catch (err) {
-      console.error('Order error:', err);
-      setError(err.response?.data?.message || 'Failed to place order. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    // Navigate to payment page with order data
+    navigate('/payment', { state: { orderData } });
   };
 
   if (cartItems.length === 0) {
@@ -71,18 +53,6 @@ const Checkout = () => {
   return (
     <div className="checkout-page">
       <h1>Checkout</h1>
-
-      {error && (  // ← ADD ERROR DISPLAY
-        <div style={{
-          background: '#fee',
-          color: '#c33',
-          padding: '15px',
-          borderRadius: '8px',
-          marginBottom: '20px'
-        }}>
-          {error}
-        </div>
-      )}
 
       <div className="checkout-layout">
         <div className="order-summary">
@@ -109,8 +79,8 @@ const Checkout = () => {
             required
             rows="4"
           />
-          <button type="submit" disabled={loading}>
-            {loading ? 'Processing...' : 'Place Order'}
+          <button type="submit">
+            Proceed to Payment
           </button>
         </form>
       </div>
