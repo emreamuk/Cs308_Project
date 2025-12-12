@@ -120,7 +120,7 @@ useEffect(() => {
           <div className="product-rating">
             <span className="stars">{'⭐'.repeat(Math.round(product.rating))}</span>
             <span className="rating-text">
-              {product.rating.toFixed(1)} ({product.numReviews} reviews)
+              {product.rating.toFixed(1)} ({product.numReviews} ratings)
             </span>
           </div>
 
