@@ -11,6 +11,7 @@ router.post('/', auth, async (req, res) => {
   try {
     const { productId, rating, comment } = req.body;
 
+    // Validate input
     if (!productId || !rating || !comment) {
       return res.status(400).json({ message: 'Please provide all fields' });
     }
@@ -19,11 +20,13 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ message: 'Rating must be between 1 and 5' });
     }
 
+    // Check if product exists
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
+    // Check if user has purchased and received this product
     const order = await Order.findOne({
       user: req.user.id,
       'orderItems.product': productId,
@@ -36,6 +39,7 @@ router.post('/', auth, async (req, res) => {
       });
     }
 
+    // Check if user already reviewed this product
     const existingReview = await Review.findOne({
       product: productId,
       user: req.user.id
@@ -47,16 +51,18 @@ router.post('/', auth, async (req, res) => {
       });
     }
 
+    // Create review
     const review = new Review({
       product: productId,
       user: req.user.id,
       rating,
       comment,
-      approved: false
+      approved: false // Needs product manager approval
     });
 
     await review.save();
 
+    // Update product rating (only approved reviews count)
     await updateProductRating(productId);
 
     res.status(201).json({
@@ -75,6 +81,7 @@ router.post('/rating', auth, async (req, res) => {
   try {
     const { productId, rating } = req.body;
 
+    // Validate input
     if (!productId || !rating) {
       return res.status(400).json({ message: 'Please provide productId and rating' });
     }
@@ -83,11 +90,13 @@ router.post('/rating', auth, async (req, res) => {
       return res.status(400).json({ message: 'Rating must be between 1 and 5' });
     }
 
+    // Check if product exists
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
+    // Check if user has purchased and received this product
     const order = await Order.findOne({
       user: req.user.id,
       'orderItems.product': productId,
@@ -100,25 +109,29 @@ router.post('/rating', auth, async (req, res) => {
       });
     }
 
+    // Check if user already reviewed (has rating)
     const existingReview = await Review.findOne({
       product: productId,
       user: req.user.id
     });
 
     if (existingReview) {
+      // Update existing rating
       existingReview.rating = rating;
       await existingReview.save();
     } else {
+      // Create new review with rating only (no comment)
       const review = new Review({
         product: productId,
         user: req.user.id,
         rating,
-        comment: 'Rating only',
-        approved: true
+        comment: 'Rating only', // Placeholder
+        approved: true // Auto-approve rating-only
       });
       await review.save();
     }
 
+    // Update product rating immediately
     await updateProductRating(productId);
 
     res.json({ message: 'Rating submitted successfully' });
@@ -135,7 +148,7 @@ router.get('/product/:productId', async (req, res) => {
     const reviews = await Review.find({ 
       product: req.params.productId,
       approved: true,
-      comment: { $ne: 'Rating only' }
+      comment: { $ne: 'Rating only' } // Exclude rating-only reviews
     })
     .populate('user', 'name')
     .sort({ createdAt: -1 });
@@ -215,6 +228,7 @@ router.delete('/:id', auth, async (req, res) => {
 // Helper function to update product rating
 async function updateProductRating(productId) {
   try {
+    // Get all approved reviews for this product
     const reviews = await Review.find({ 
       product: productId,
       approved: true
@@ -228,9 +242,11 @@ async function updateProductRating(productId) {
       return;
     }
 
+    // Calculate average rating
     const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
     const avgRating = totalRating / reviews.length;
 
+    // Update product
     await Product.findByIdAndUpdate(productId, {
       rating: avgRating,
       numReviews: reviews.length
