@@ -247,19 +247,15 @@
 }
 
 .review-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: block;
   margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .reviewer-name {
   font-weight: 600;
   font-size: 16px;
-}
-
-.review-rating {
-  font-size: 18px;
 }
 
 .review-date {
