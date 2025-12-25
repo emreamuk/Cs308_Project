@@ -40,6 +40,7 @@ import Navbar from './Components/Navbar/Navbar';
 import Login from './Components/Pages/Login/Login';
 import LoginSignUp from './Components/Pages/LoginSignUp/LoginSignUp';
 import Home from "./Components/Pages/Home/Home";
+import Wishlist from "./Components/Pages/Whistlist/Wishlist";
 import Cart from "./Components/Pages/Cart/Cart";
 import SearchPage from "./Components/Pages/Search/SearchPage";
 import Checkout from "./Components/Pages/Checkout/Checkout";
@@ -59,6 +60,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<LoginSignUp />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/payment" element={<Payment />} />

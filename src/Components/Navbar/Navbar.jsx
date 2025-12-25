@@ -1,18 +1,21 @@
 // src/Components/Navbar/Navbar.jsx
-import React, { useState, useEffect, useContext} from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import "./Navbar.css";
 import logo from '../Assets/logo.png';
 import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext'; 
+import { WishlistContext } from '../../context/WishlistContext';
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
   
+  // Consuming both Cart and Wishlist contexts
   const { getCartCount } = useContext(CartContext);
+  const { getWishlistCount } = useContext(WishlistContext);
 
   useEffect(() => {
-    // Check if user is logged in
+    // Check if user is logged in via localStorage
     const userData = localStorage.getItem('user');
     if (userData) {
       setUser(JSON.parse(userData));
@@ -28,13 +31,13 @@ const Navbar = () => {
 
   return (
     <div className='navbar'>
-      <div className='nav-logo'>
-        <Link to="/">
-          <img src={logo} alt="AO Comics Logo"/>
-        </Link>
+      {/* 1. Logo Section */}
+      <div className='nav-logo' onClick={() => navigate('/')} style={{cursor: 'pointer'}}>
+        <img src={logo} alt="AO Comics Logo"/>
         <p>AO Comics</p>
       </div>
 
+      {/* 2. Navigation Menu */}
       <ul className="nav-menu">
         <li onClick={() => navigate('/')}>Shop</li>
         <li onClick={() => navigate('/search')}>Search</li>
@@ -42,9 +45,15 @@ const Navbar = () => {
         {user && user.role === 'product_manager' && (
           <li onClick={() => navigate('/product-manager')}>Manager</li>
         )}
+          {user && user.role === 'sales_manager' && (
+          <li onClick={() => navigate('/sales-manager')}>Selling Products </li>
+        )}
       </ul>
 
+      {/* 3. Action Icons & Auth Section */}
       <div className='nav-login-cart'>
+        
+        {/* User Authentication / Welcome Message */}
         {user ? (
           <>
             <span style={{ marginRight: '15px', fontSize: '14px' }}>
@@ -54,28 +63,25 @@ const Navbar = () => {
           </>
         ) : (
           <Link to="/login">
-            <button>Login</button>
+            <button className="nav-login-btn">Login</button>
           </Link>
         )}
         
-        <Link to="/cart" style={{position: 'relative', display: 'inline-block'}}>
+        {/* Wishlist Icon with Badge */}
+        <Link to="/wishlist" style={{position: 'relative', display: 'inline-block', marginLeft: '15px'}}>
+          <button style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer', padding: '0' }}>❤️</button>
+          {getWishlistCount() > 0 && (
+            <span className="nav-badge">
+              {getWishlistCount()}
+            </span>
+          )}
+        </Link>
+
+        {/* Cart Icon with Badge */}
+        <Link to="/cart" style={{position: 'relative', display: 'inline-block', marginLeft: '15px'}}>
           <img src="/assets/cart_icon.png" alt="Cart" />
           {getCartCount() > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: '-8px',
-              right: '-8px',
-              background: '#ff4141',
-              color: 'white',
-              borderRadius: '50%',
-              width: '22px',
-              height: '22px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px',
-              fontWeight: 'bold'
-            }}>
+            <span className="nav-badge">
               {getCartCount()}
             </span>
           )}

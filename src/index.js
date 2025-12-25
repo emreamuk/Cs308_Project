@@ -4,17 +4,19 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { CartProvider } from './context/CartContext';
+// ✅ ADDED: Import WishlistProvider to enable wishlist functionality across the app
+import { WishlistProvider } from './context/WishlistContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <CartProvider>
-      <App />
+      {/* ✅ ADDED: Wrap App with WishlistProvider so all components can access wishlist context */}
+      <WishlistProvider>
+        <App />
+      </WishlistProvider>
     </CartProvider>
   </React.StrictMode>
 );
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
