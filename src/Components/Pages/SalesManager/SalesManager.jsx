@@ -21,6 +21,7 @@ function SalesManager() {
     setProducts(res.data);
   };
 
+  // Function to apply discount (Point 1 - existing logic)
   const applyDiscount = async () => {
     const token = localStorage.getItem('token');
     await axios.post('http://localhost:5000/api/sales/discount', {
@@ -29,6 +30,22 @@ function SalesManager() {
     }, { headers: { Authorization: `Bearer ${token}` } });
     alert('Discount applied!');
     fetchProducts();
+  };
+
+  //Added function to remove discounts and restore original prices
+  const removeDiscount = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      await axios.post('http://localhost:5000/api/sales/undiscount', {
+        productIds: selectedProducts
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      
+      alert('Discounts disabled and prices restored!');
+      fetchProducts(); // Refresh the list to see updated prices
+    } catch (error) {
+      console.error('Error removing discount:', error);
+      alert('Failed to remove discount.');
+    }
   };
 
   const getAnalytics = async () => {
@@ -53,10 +70,27 @@ function SalesManager() {
       <div className="section">
         <h2>Apply Discount</h2>
         <select multiple onChange={(e) => setSelectedProducts(Array.from(e.target.selectedOptions, opt => opt.value))}>
-          {products.map(p => <option key={p._id} value={p._id}>{p.name} - ${p.price}</option>)}
+          {products.map(p => (
+            /* CHANGE 2: Displaying current price and original price side-by-side if originalPrice exists */
+            <option key={p._id} value={p._id}>
+              {p.name} - ${p.price} {p.originalPrice ? `(Original: $${p.originalPrice})` : ''}
+            </option>
+          ))}
         </select>
-        <input type="number" placeholder="Discount %" value={discount} onChange={(e) => setDiscount(e.target.value)} />
-        <button onClick={applyDiscount}>Apply Discount</button>
+
+        <div className="discountRate">
+          <input type="number" placeholder="Discount %" value={discount} onChange={(e) => setDiscount(e.target.value)} />
+        </div>
+        
+        
+        <div className="button-group">
+          <button onClick={applyDiscount}>Apply Discount</button>
+          
+          {/* CHANGE 1 (UI): Added button to trigger the removeDiscount function */}
+          <button onClick={removeDiscount} style={{ backgroundColor: '#6c757d', marginLeft: '10px' }}>
+            Disable Discount
+          </button>
+        </div>
       </div>
 
       {/* Analytics Section */}

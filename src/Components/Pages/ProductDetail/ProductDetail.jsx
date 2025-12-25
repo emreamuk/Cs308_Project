@@ -134,13 +134,46 @@ useEffect(() => {
           </div>
 
           <div className="product-price-section">
-            <h2 className="price">${product.price}</h2>
+            {/* Check if a discount exists */}
+            {product.originalPrice && product.originalPrice > product.price ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                {/* Red Discount Badge */}
+                <span style={{ 
+                  backgroundColor: '#ff4141', 
+                  color: 'white', 
+                  padding: '4px 8px', 
+                  borderRadius: '4px', 
+                  fontWeight: 'bold', 
+                  fontSize: '1rem' 
+                }}>
+                  -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                </span>
+                
+                {/* Current Discounted Price */}
+                <h2 className="price" style={{ color: '#ff4141', margin: 0 }}>
+                  ${product.price.toFixed(2)}
+                </h2>
+                
+                {/* Original Price with Strikethrough */}
+                <span style={{ 
+                  textDecoration: 'line-through', 
+                  color: '#999', 
+                  fontSize: '1.1rem' 
+                }}>
+                  ${product.originalPrice.toFixed(2)}
+                </span>
+              </div>
+            ) : (
+              /* Standard price view if no discount */
+              <h2 className="price">${product.price.toFixed(2)}</h2>
+            )}
+
             <p className={`stock ${product.quantityInStock > 0 ? 'in-stock' : 'out-of-stock'}`}>
               {product.quantityInStock > 0 
                 ? `${product.quantityInStock} in stock` 
                 : 'Out of Stock'}
             </p>
-          </div>
+</div>
 
           <button 
             className="add-to-cart-btn"

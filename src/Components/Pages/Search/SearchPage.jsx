@@ -95,10 +95,44 @@ const SearchPage = () => {
                   </span>
                 </div>
 
-                <p style={{fontWeight: 'bold', color: '#ff4141'}}>${comic.price}</p>
-                <p style={{fontSize: '0.85rem', color: comic.quantityInStock > 0 ? 'green' : 'red'}}>
+                <div className="store-price-container">
+                {comic.originalPrice && comic.originalPrice > comic.price ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '5px 0' }}>
+                    {/* Percentage Badge */}
+                    <span style={{ 
+                      backgroundColor: '#ff4141', 
+                      color: 'white', 
+                      padding: '2px 6px', 
+                      borderRadius: '3px', 
+                      fontWeight: 'bold', 
+                      fontSize: '0.8rem' 
+                    }}>
+                      -{Math.round(((comic.originalPrice - comic.price) / comic.originalPrice) * 100)}%
+                    </span>
+
+                    {/* Discounted Price */}
+                    <p style={{ fontWeight: 'bold', color: '#ff4141', fontSize: '1.1rem', margin: 0 }}>
+                      ${comic.price.toFixed(2)}
+                    </p>
+
+                    {/* Strikethrough Original Price */}
+                    <p style={{ textDecoration: 'line-through', color: '#888', fontSize: '0.85rem', margin: 0 }}>
+                      ${comic.originalPrice.toFixed(2)}
+                    </p>
+                  </div>
+                ) : (
+                  /* Normal price display if no discount */
+                  <p style={{ fontWeight: 'bold', color: '#ff4141' }}>
+                    ${comic.price.toFixed(2)}
+                  </p>
+                )}
+
+                {/* Stock status display */}
+                <p style={{ fontSize: '0.85rem', color: comic.quantityInStock > 0 ? 'green' : 'red', margin: '5px 0' }}>
                   {comic.quantityInStock > 0 ? `${comic.quantityInStock} in stock` : 'Out of Stock'}
                 </p>
+              </div>
+              
               </div>
             ))}
           </div>

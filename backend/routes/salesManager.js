@@ -17,7 +17,8 @@ router.post('/discount', auth, checkRole('sales_manager'), async (req, res) => {
       const product = await Product.findById(id);
       if (product) {
         product.originalPrice = product.originalPrice || product.price;
-        product.price = product.originalPrice * (1 - discountPercentage / 100);
+        product.price = Math.round(product.originalPrice * (1 - discountPercentage / 100) * 100) / 100;
+        product.discount= discountPercentage
         await product.save();
         updatedProducts.push(product);
       }
@@ -26,6 +27,41 @@ router.post('/discount', auth, checkRole('sales_manager'), async (req, res) => {
     res.json({ message: 'Discount applied', products: updatedProducts });
   } catch (error) {
     res.status(500).json({ message: 'Error applying discount' });
+  }
+});
+
+//Remove discount to products
+router.post('/undiscount', auth, checkRole('sales_manager'), async (req, res) => {
+  try {
+    const { productIds } = req.body;
+    const updatedProducts = [];
+
+    for (let id of productIds) {
+      const product = await Product.findById(id);
+
+      if (product && product.originalPrice) {
+        // Restore the price from originalPrice
+        product.price = product.originalPrice;
+        
+        // Reset discount tracking fields
+        product.discountApplied = 0;
+        
+        await product.save();
+        updatedProducts.push(product);
+      }
+    }
+
+    res.status(200).json({ 
+      success: true,
+      message: 'Discounts removed and original prices restored.', 
+      count: updatedProducts.length 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: 'Error while removing discounts.',
+      error: error.message 
+    });
   }
 });
 
