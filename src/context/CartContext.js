@@ -1,12 +1,15 @@
 // src/context/CartContext.js
 import React, { createContext, useState, useEffect } from 'react';
-
+// Context to share cart-related state and functions across the app
 export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
+  // Holds all items currently in the cart
   const [cartItems, setCartItems] = useState([]);
+  // Used to make sure localStorage sync happens only after initial load
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Load cart data from localStorage when the app first mounts
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
@@ -20,16 +23,19 @@ export const CartProvider = ({ children }) => {
     setIsLoaded(true);
   }, []);
 
+  // Save cart data to localStorage whenever cartItems change
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem('cart', JSON.stringify(cartItems));
     }
   }, [cartItems, isLoaded]);
 
+  // Adds a product to the cart or increases quantity if it already exists
   const addToCart = (product) => {
     const existingItem = cartItems.find(item => item._id === product._id);
     
     if (existingItem) {
+      // Prevent adding more than available stock
       if (existingItem.qty >= product.quantityInStock) {
         alert(`Cannot add more. Only ${product.quantityInStock} items in stock.`);
         return false; 
@@ -39,6 +45,7 @@ export const CartProvider = ({ children }) => {
         item._id === product._id ? { ...item, qty: item.qty + 1 } : item
       ));
     } else {
+      // Do not allow adding out-of-stock products
       if (product.quantityInStock < 1) {
         alert('This product is out of stock.');
         return false;
@@ -48,11 +55,12 @@ export const CartProvider = ({ children }) => {
     }
     return true; 
   };
-
+  // Removes a product completely from the cart
   const removeFromCart = (productId) => {
     setCartItems(cartItems.filter(item => item._id !== productId));
   };
 
+  // Increases quantity of a specific cart item, respecting stock limits
   const increaseQty = (productId) => {
     const item = cartItems.find(item => item._id === productId);
     
@@ -68,6 +76,7 @@ export const CartProvider = ({ children }) => {
     ));
   };
 
+  // Decreases quantity of a cart item or removes it if quantity reaches 1
   const decreaseQty = (productId) => {
     const item = cartItems.find(item => item._id === productId);
     if (item.qty === 1) {
@@ -79,14 +88,17 @@ export const CartProvider = ({ children }) => {
     }
   };
 
+  // Clears the entire cart
   const clearCart = () => {
     setCartItems([]);
   };
 
+  // Calculates total price of all items in the cart
   const getCartTotal = () => {
     return cartItems.reduce((total, item) => total + (item.price * item.qty), 0);
   };
 
+   // Calculates total number of items in the cart
   const getCartCount = () => {
     return cartItems.reduce((count, item) => count + item.qty, 0);
   };

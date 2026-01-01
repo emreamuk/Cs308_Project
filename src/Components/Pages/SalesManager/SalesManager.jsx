@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './SalesManager.css';
+// Chart components used for visualizing sales analytics
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+// SalesManager component responsible for managing discounts,
+// viewing sales analytics, and displaying invoices
 function SalesManager() {
   const [products, setProducts] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -13,15 +16,18 @@ function SalesManager() {
   const [invoices, setInvoices] = useState([]);
   const [detailedMetrics, setDetailedMetrics] = useState(null);
 
+  // Fetch product list once when the component mounts
   useEffect(() => {
     fetchProducts();
   }, []);
 
+  // Retrieves all products from the backend
   const fetchProducts = async () => {
     const res = await axios.get('http://localhost:5000/api/products');
     setProducts(res.data);
   };
 
+  // Applies a discount to the selected products
   const applyDiscount = async () => {
     const token = localStorage.getItem('token');
     await axios.post('http://localhost:5000/api/sales/discount', {
@@ -32,6 +38,7 @@ function SalesManager() {
     fetchProducts();
   };
 
+  // Removes discount from selected products and restores original prices
   const removeDiscount = async () => {
     const token = localStorage.getItem('token');
     try {
@@ -47,6 +54,8 @@ function SalesManager() {
     }
   };
 
+  // Fetches revenue, cost, and profit analytics for the given date range
+
   const getAnalytics = async () => {
     const token = localStorage.getItem('token');
     const res = await axios.get(`http://localhost:5000/api/sales/analytics?startDate=${startDate}&endDate=${endDate}`,
@@ -54,13 +63,14 @@ function SalesManager() {
     setAnalytics(res.data);
   };
 
+  // Retrieves invoice data for the selected date range
   const getInvoices = async () => {
     const token = localStorage.getItem('token');
     const res = await axios.get(`http://localhost:5000/api/sales/invoices?startDate=${startDate}&endDate=${endDate}`,
       { headers: { Authorization: `Bearer ${token}` } });
     setInvoices(res.data);
   };
-
+  // Fetches detailed sales metrics used for charts and breakdown tables
   const getDetailedMetrics = async () => {
     const token = localStorage.getItem('token');
     const res = await axios.get(`http://localhost:5000/api/sales/detailed-metrics?startDate=${startDate}&endDate=${endDate}`,
