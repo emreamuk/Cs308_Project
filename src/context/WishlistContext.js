@@ -7,12 +7,12 @@ export const WishlistProvider = ({ children }) => {
   const [wishlistItems, setWishlistItems] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // ✅ ADDED: Check if user is logged in
+  // Check if user is logged in
   const isLoggedIn = () => {
     return !!localStorage.getItem('token');
   };
 
-  // ✅ MODIFIED: Load wishlist from backend if logged in, otherwise use localStorage
+  // Load wishlist from backend if logged in, otherwise use localStorage
   useEffect(() => {
     const loadWishlist = async () => {
       if (isLoggedIn()) {
@@ -46,14 +46,14 @@ export const WishlistProvider = ({ children }) => {
     loadWishlist();
   }, []);
 
-  // ✅ MODIFIED: Save to localStorage only for guest users
+  // Save to localStorage only for guest users
   useEffect(() => {
     if (isLoaded && !isLoggedIn()) {
       localStorage.setItem('wishlist', JSON.stringify(wishlistItems));
     }
   }, [wishlistItems, isLoaded]);
 
-  // ✅ MODIFIED: Add to wishlist (backend if logged in, localStorage if guest)
+  // Add to wishlist (backend if logged in, localStorage if guest)
   const addToWishlist = async (product) => {
     if (isLoggedIn()) {
       // Add to backend for authenticated users
@@ -73,7 +73,7 @@ export const WishlistProvider = ({ children }) => {
     }
   };
 
-  // ✅ MODIFIED: Remove from wishlist (backend if logged in, localStorage if guest)
+  // Remove from wishlist (backend if logged in, localStorage if guest)
   const removeFromWishlist = async (productId) => {
     if (isLoggedIn()) {
       // Remove from backend for authenticated users
@@ -95,7 +95,7 @@ export const WishlistProvider = ({ children }) => {
     return wishlistItems.some(item => item._id === productId);
   };
 
-  // ✅ MODIFIED: Clear wishlist (backend if logged in, localStorage if guest)
+  // Clear wishlist (backend if logged in, localStorage if guest)
   const clearWishlist = async () => {
     if (isLoggedIn()) {
       // Clear from backend for authenticated users
