@@ -142,3 +142,5 @@ Multiple rapid clicks cause multiple additions.
 
 ## Root Cause
 No debouncing or click-lock mechanism, causing race conditions.
+
+# Bug Report #6: Cart working locally not dynamic 

@@ -1,20 +1,24 @@
-// src/Components/Pages/ProductDetail/ProductDetail.jsx
+// src/Components/Pages/ProductDetail/ProductDetail_new.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import API from '../../../services/api';
 import { CartContext } from '../../../context/CartContext';
+// ✅ ADDED: Import WishlistContext to add wishlist functionality
+import { WishlistContext } from '../../../context/WishlistContext';
 import './ProductDetail.css';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useContext(CartContext);
-  
+  // ✅ ADDED: Get wishlist functions from context
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useContext(WishlistContext);
+
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // Review form state
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
@@ -26,10 +30,10 @@ useEffect(() => {
     try {
       const productResponse = await API.get(`/products/${id}`);
       setProduct(productResponse.data);
-      
+
       const reviewsResponse = await API.get(`/reviews/product/${id}`);
       setReviews(reviewsResponse.data);
-      
+
       setLoading(false);
     } catch (error) {
       console.error('Fetch error:', error);
@@ -42,16 +46,27 @@ useEffect(() => {
 }, [id]);
 
   const handleAddToCart = () => {
-    const success = addToCart(product); // CHANGED: Capture return value
-    
-    if (success) { // CHANGED: Only show success if it worked
+    const success = addToCart(product);
+
+    if (success) {
       alert(`${product.name} added to cart!`);
+    }
+  };
+
+  // ✅ ADDED: Handle wishlist toggle (add/remove based on current state)
+  const handleWishlistToggle = () => {
+    if (isInWishlist(product._id)) {
+      removeFromWishlist(product._id);
+      alert(`${product.name} removed from wishlist`);
+    } else {
+      addToWishlist(product);
+      alert(`${product.name} added to wishlist`);
     }
   };
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
-    
+
     const token = localStorage.getItem('token');
     if (!token) {
       alert('Please login to submit a review');
@@ -116,7 +131,7 @@ useEffect(() => {
         <div className="product-info-section">
           <h1>{product.name}</h1>
           <p className="product-category">{product.category}</p>
-          
+
           <div className="product-rating">
             <span className="stars">{'⭐'.repeat(Math.round(product.rating))}</span>
             <span className="rating-text">
@@ -138,27 +153,27 @@ useEffect(() => {
             {product.originalPrice && product.originalPrice > product.price ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                 {/* Red Discount Badge */}
-                <span style={{ 
-                  backgroundColor: '#ff4141', 
-                  color: 'white', 
-                  padding: '4px 8px', 
-                  borderRadius: '4px', 
-                  fontWeight: 'bold', 
-                  fontSize: '1rem' 
+                <span style={{
+                  backgroundColor: '#ff4141',
+                  color: 'white',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontWeight: 'bold',
+                  fontSize: '1rem'
                 }}>
                   -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
                 </span>
-                
+
                 {/* Current Discounted Price */}
                 <h2 className="price" style={{ color: '#ff4141', margin: 0 }}>
                   ${product.price.toFixed(2)}
                 </h2>
-                
+
                 {/* Original Price with Strikethrough */}
-                <span style={{ 
-                  textDecoration: 'line-through', 
-                  color: '#999', 
-                  fontSize: '1.1rem' 
+                <span style={{
+                  textDecoration: 'line-through',
+                  color: '#999',
+                  fontSize: '1.1rem'
                 }}>
                   ${product.originalPrice.toFixed(2)}
                 </span>
@@ -169,19 +184,41 @@ useEffect(() => {
             )}
 
             <p className={`stock ${product.quantityInStock > 0 ? 'in-stock' : 'out-of-stock'}`}>
-              {product.quantityInStock > 0 
-                ? `${product.quantityInStock} in stock` 
+              {product.quantityInStock > 0
+                ? `${product.quantityInStock} in stock`
                 : 'Out of Stock'}
             </p>
 </div>
 
-          <button 
-            className="add-to-cart-btn"
-            disabled={product.quantityInStock === 0}
-            onClick={handleAddToCart}
-          >
-            {product.quantityInStock > 0 ? 'Add to Cart' : 'Out of Stock'}
-          </button>
+          {/* ✅ ADDED: Wishlist and Cart buttons in a flex container */}
+          <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+            <button
+              className="add-to-cart-btn"
+              disabled={product.quantityInStock === 0}
+              onClick={handleAddToCart}
+              style={{ flex: 1 }}
+            >
+              {product.quantityInStock > 0 ? 'Add to Cart' : 'Out of Stock'}
+            </button>
+
+            {/* ✅ ADDED: Wishlist toggle button */}
+            <button
+              onClick={handleWishlistToggle}
+              style={{
+                padding: '12px 20px',
+                background: isInWishlist(product._id) ? '#ff4141' : 'white',
+                color: isInWishlist(product._id) ? 'white' : '#ff4141',
+                border: `2px solid #ff4141`,
+                borderRadius: '4px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              {isInWishlist(product._id) ? '❤️ In Wishlist' : '🤍 Add to Wishlist'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -190,7 +227,7 @@ useEffect(() => {
         <h3>Rate this product:</h3>
         <div className="star-buttons">
           {[1, 2, 3, 4, 5].map(star => (
-            <button 
+            <button
               key={star}
               onClick={() => handleQuickRating(star)}
               className="star-btn"
@@ -205,7 +242,7 @@ useEffect(() => {
       <div className="review-form-section">
         <h3>Write a Review</h3>
         {reviewError && <p className="error-message">{reviewError}</p>}
-        
+
         <form onSubmit={handleSubmitReview}>
           <div className="form-group">
             <label>Rating:</label>
@@ -238,7 +275,7 @@ useEffect(() => {
       {/* Reviews List */}
       <div className="reviews-section">
         <h3>Customer Reviews ({reviews.length})</h3>
-        
+
         {reviews.length === 0 ? (
           <p className="no-reviews">No reviews yet. Be the first to review!</p>
         ) : (
