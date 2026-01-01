@@ -1,8 +1,6 @@
-// src/Components/Pages/SalesManager/SalesManager.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './SalesManager.css';
-// ✅ ADDED: Import chart components
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 function SalesManager() {
@@ -13,7 +11,6 @@ function SalesManager() {
   const [endDate, setEndDate] = useState('');
   const [analytics, setAnalytics] = useState(null);
   const [invoices, setInvoices] = useState([]);
-  // ✅ ADDED: State for detailed metrics
   const [detailedMetrics, setDetailedMetrics] = useState(null);
 
   useEffect(() => {
@@ -25,7 +22,6 @@ function SalesManager() {
     setProducts(res.data);
   };
 
-  // Function to apply discount (Point 1 - existing logic)
   const applyDiscount = async () => {
     const token = localStorage.getItem('token');
     await axios.post('http://localhost:5000/api/sales/discount', {
@@ -36,7 +32,6 @@ function SalesManager() {
     fetchProducts();
   };
 
-  //Added function to remove discounts and restore original prices
   const removeDiscount = async () => {
     const token = localStorage.getItem('token');
     try {
@@ -45,7 +40,7 @@ function SalesManager() {
       }, { headers: { Authorization: `Bearer ${token}` } });
       
       alert('Discounts disabled and prices restored!');
-      fetchProducts(); // Refresh the list to see updated prices
+      fetchProducts(); 
     } catch (error) {
       console.error('Error removing discount:', error);
       alert('Failed to remove discount.');
@@ -66,7 +61,6 @@ function SalesManager() {
     setInvoices(res.data);
   };
 
-  // ✅ ADDED: Function to fetch detailed metrics
   const getDetailedMetrics = async () => {
     const token = localStorage.getItem('token');
     const res = await axios.get(`http://localhost:5000/api/sales/detailed-metrics?startDate=${startDate}&endDate=${endDate}`,
@@ -78,12 +72,11 @@ function SalesManager() {
     <div className="sales-manager">
       <h1>Sales Manager Dashboard</h1>
 
-      {/* Discount Section */}
+      {}
       <div className="section">
         <h2>Apply Discount</h2>
         <select multiple onChange={(e) => setSelectedProducts(Array.from(e.target.selectedOptions, opt => opt.value))}>
           {products.map(p => (
-            /* CHANGE 2: Displaying current price and original price side-by-side if originalPrice exists */
             <option key={p._id} value={p._id}>
               {p.name} - ${p.price} {p.originalPrice && p.originalPrice !== p.price ? `(Original: $${p.originalPrice})` : ''}
             </option>
@@ -98,14 +91,14 @@ function SalesManager() {
         <div className="button-group">
           <button onClick={applyDiscount}>Apply Discount</button>
           
-          {/* CHANGE 1 (UI): Added button to trigger the removeDiscount function */}
+          {}
           <button onClick={removeDiscount} style={{ backgroundColor: '#6c757d', marginLeft: '10px' }}>
             Disable Discount
           </button>
         </div>
       </div>
 
-      {/* Analytics Section */}
+      {}
       <div className="section">
         <h2>Revenue & Profit</h2>
         <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
@@ -123,7 +116,7 @@ function SalesManager() {
         )}
       </div>
 
-      {/* ✅ NEW: Detailed Metrics Section with Charts */}
+      {}
       <div className="section">
         <h2>Detailed Sales Metrics</h2>
         <button onClick={getDetailedMetrics}>Get Detailed Metrics</button>
@@ -131,7 +124,7 @@ function SalesManager() {
         {detailedMetrics && (
           <div className="detailed-metrics">
 
-            {/* Summary Stats */}
+            {}
             <div className="metrics-summary" style={{marginBottom: '20px', padding: '15px', background: '#f5f5f5', borderRadius: '5px'}}>
               <h3>Summary</h3>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px'}}>
@@ -143,7 +136,7 @@ function SalesManager() {
               </div>
             </div>
 
-            {/* Top Selling Products - Bar Chart */}
+            {}
             <div className="top-products" style={{marginBottom: '30px'}}>
               <h3>Top 5 Selling Products</h3>
               {detailedMetrics.topProducts.length > 0 ? (
@@ -162,7 +155,7 @@ function SalesManager() {
               )}
             </div>
 
-            {/* Revenue by Category - Pie Chart */}
+            {}
             <div className="category-breakdown" style={{marginBottom: '30px'}}>
               <h3>Revenue by Category</h3>
               {detailedMetrics.categoryBreakdown.length > 0 ? (
@@ -191,7 +184,7 @@ function SalesManager() {
               )}
             </div>
 
-            {/* Top Products Table */}
+            {}
             <div className="top-products-table" style={{marginBottom: '20px'}}>
               <h3>Top Products Details</h3>
               {detailedMetrics.topProducts.length > 0 && (
@@ -218,7 +211,7 @@ function SalesManager() {
               )}
             </div>
 
-            {/* Category Revenue Table */}
+            {}
             <div className="category-table">
               <h3>Category Revenue Breakdown</h3>
               {detailedMetrics.categoryBreakdown.length > 0 && (
@@ -251,7 +244,7 @@ function SalesManager() {
         )}
       </div>
 
-      {/* Invoices Section */}
+      {}
       <div className="section">
         <h2>View Invoices</h2>
         <button onClick={getInvoices}>Get Invoices</button>
