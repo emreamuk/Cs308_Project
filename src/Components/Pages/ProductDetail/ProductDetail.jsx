@@ -18,36 +18,34 @@ const ProductDetail = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  // Review form state
-  const [rating, setRating] = useState(5);
+  
+  // ✅ REMOVED: rating state (no longer needed for reviews)
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState('');
 
-useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const productResponse = await API.get(`/products/${id}`);
-      setProduct(productResponse.data);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const productResponse = await API.get(`/products/${id}`);
+        setProduct(productResponse.data);
+        
+        const reviewsResponse = await API.get(`/reviews/product/${id}`);
+        setReviews(reviewsResponse.data);
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Fetch error:', error);
+        setError('Product not found');
+        setLoading(false);
+      }
+    };
 
-      const reviewsResponse = await API.get(`/reviews/product/${id}`);
-      setReviews(reviewsResponse.data);
-
-      setLoading(false);
-    } catch (error) {
-      console.error('Fetch error:', error);
-      setError('Product not found');
-      setLoading(false);
-    }
-  };
-
-  fetchData();
-}, [id]);
+    fetchData();
+  }, [id]);
 
   const handleAddToCart = () => {
     const success = addToCart(product);
-
     if (success) {
       alert(`${product.name} added to cart!`);
     }
@@ -78,14 +76,13 @@ useEffect(() => {
     setReviewError('');
 
     try {
-      await API.post('/reviews', {
+      // ✅ CHANGED: Only send comment, no rating
+      await API.post('/reviews/comment', {
         productId: id,
-        rating,
         comment
       });
 
       alert('Review submitted! It will be visible after approval by product manager.');
-      setRating(5);
       setComment('');
     } catch (error) {
       setReviewError(error.response?.data?.message || 'Failed to submit review');
@@ -109,6 +106,10 @@ useEffect(() => {
       });
 
       alert('Rating submitted successfully!');
+      
+      // ✅ ADDED: Refresh product to show updated rating
+      const productResponse = await API.get(`/products/${id}`);
+      setProduct(productResponse.data);
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to submit rating');
     }
@@ -125,7 +126,14 @@ useEffect(() => {
       <div className="product-detail-container">
         {/* Product Info */}
         <div className="product-image-section">
-          <img src={product.imageUrl} alt={product.name} />
+          <img 
+            src={product.imageUrl} 
+            alt={product.name}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'https://via.placeholder.com/400x550/cccccc/666666?text=Image+Not+Available';
+            }}
+          />
         </div>
 
         <div className="product-info-section">
@@ -222,9 +230,12 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Quick Rating */}
+      {/* Quick Rating - INDEPENDENT */}
       <div className="quick-rating-section">
         <h3>Rate this product:</h3>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '15px' }}>
+          Your rating helps other customers
+        </p>
         <div className="star-buttons">
           {[1, 2, 3, 4, 5].map(star => (
             <button
@@ -238,23 +249,18 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Review Form */}
+      {/* Review Form - COMMENT ONLY, NO RATING */}
       <div className="review-form-section">
         <h3>Write a Review</h3>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '15px' }}>
+          Share your thoughts about this product (rating submitted separately above)
+        </p>
+        
         {reviewError && <p className="error-message">{reviewError}</p>}
 
         <form onSubmit={handleSubmitReview}>
-          <div className="form-group">
-            <label>Rating:</label>
-            <select value={rating} onChange={(e) => setRating(Number(e.target.value))}>
-              <option value="5">⭐⭐⭐⭐⭐ (5 stars)</option>
-              <option value="4">⭐⭐⭐⭐ (4 stars)</option>
-              <option value="3">⭐⭐⭐ (3 stars)</option>
-              <option value="2">⭐⭐ (2 stars)</option>
-              <option value="1">⭐ (1 star)</option>
-            </select>
-          </div>
-
+          {/* ✅ REMOVED: Rating dropdown - no longer needed */}
+          
           <div className="form-group">
             <label>Your Review:</label>
             <textarea
@@ -272,7 +278,7 @@ useEffect(() => {
         </form>
       </div>
 
-      {/* Reviews List */}
+      {/* Reviews List - COMMENTS ONLY, NO STARS PER REVIEW */}
       <div className="reviews-section">
         <h3>Customer Reviews ({reviews.length})</h3>
 
@@ -284,7 +290,7 @@ useEffect(() => {
               <div key={review._id} className="review-card">
                 <div className="review-header">
                   <span className="reviewer-name">{review.user.name}</span>
-                  <span className="review-rating">{'⭐'.repeat(review.rating)}</span>
+                  {/* ✅ REMOVED: Rating stars from individual reviews */}
                 </div>
                 <p className="review-date">
                   {new Date(review.createdAt).toLocaleDateString()}
