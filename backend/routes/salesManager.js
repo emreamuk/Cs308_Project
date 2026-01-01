@@ -141,9 +141,7 @@ router.get('/analytics', auth, checkRole('sales_manager'), async (req, res) => {
       });
     });
 
-    //****************************************************/
-    //FOR LATER COMMİT
-    
+    //Buradan Aşağısı için Ceren Bu commenti sil aşağısını eklediğini söyle
     const profit = revenue - cost;
 
 

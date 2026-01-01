@@ -68,7 +68,7 @@ function App() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/product/:id" element={<ProductDetail />} />
         <Route path="/product-manager" element={<ProductManager />} />
-        <Route path="/sales-manager" element={<SalesManager />} />
+        <Route path="/sales-manager" element={<SalesManager />} /> 
       </Routes>
     </Router>
   );

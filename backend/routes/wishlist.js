@@ -115,10 +115,11 @@ router.delete('/clear', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
+// Bundan aşağısı Ceren senin ama tek tek comment silebilirsin
 // ============================================
 // GET /api/wishlist/count - Get wishlist item count
 // ============================================
+//1
 router.get('/count', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -133,6 +134,7 @@ router.get('/count', auth, async (req, res) => {
   }
 });
 
+//2
 // ============================================
 // ✅ NEW: POST /api/wishlist/notify-discount/:productId
 // Notify all users who have this product in wishlist about a discount
