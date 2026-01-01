@@ -3,7 +3,6 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import API from '../../../services/api';
 import { CartContext } from '../../../context/CartContext';
-// ✅ ADDED: Import WishlistContext to add wishlist functionality
 import { WishlistContext } from '../../../context/WishlistContext';
 import './ProductDetail.css';
 
@@ -11,15 +10,12 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useContext(CartContext);
-  // ✅ ADDED: Get wishlist functions from context
   const { addToWishlist, removeFromWishlist, isInWishlist } = useContext(WishlistContext);
 
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
-  // ✅ REMOVED: rating state (no longer needed for reviews)
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState('');
@@ -51,7 +47,6 @@ const ProductDetail = () => {
     }
   };
 
-  // ✅ ADDED: Handle wishlist toggle (add/remove based on current state)
   const handleWishlistToggle = () => {
     if (isInWishlist(product._id)) {
       removeFromWishlist(product._id);
@@ -76,7 +71,6 @@ const ProductDetail = () => {
     setReviewError('');
 
     try {
-      // ✅ CHANGED: Only send comment, no rating
       await API.post('/reviews/comment', {
         productId: id,
         comment
@@ -106,8 +100,7 @@ const ProductDetail = () => {
       });
 
       alert('Rating submitted successfully!');
-      
-      // ✅ ADDED: Refresh product to show updated rating
+
       const productResponse = await API.get(`/products/${id}`);
       setProduct(productResponse.data);
     } catch (error) {
@@ -198,7 +191,6 @@ const ProductDetail = () => {
             </p>
 </div>
 
-          {/* ✅ ADDED: Wishlist and Cart buttons in a flex container */}
           <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
             <button
               className="add-to-cart-btn"
@@ -209,7 +201,6 @@ const ProductDetail = () => {
               {product.quantityInStock > 0 ? 'Add to Cart' : 'Out of Stock'}
             </button>
 
-            {/* ✅ ADDED: Wishlist toggle button */}
             <button
               onClick={handleWishlistToggle}
               style={{
@@ -259,8 +250,6 @@ const ProductDetail = () => {
         {reviewError && <p className="error-message">{reviewError}</p>}
 
         <form onSubmit={handleSubmitReview}>
-          {/* ✅ REMOVED: Rating dropdown - no longer needed */}
-          
           <div className="form-group">
             <label>Your Review:</label>
             <textarea
@@ -278,7 +267,6 @@ const ProductDetail = () => {
         </form>
       </div>
 
-      {/* Reviews List - COMMENTS ONLY, NO STARS PER REVIEW */}
       <div className="reviews-section">
         <h3>Customer Reviews ({reviews.length})</h3>
 
@@ -290,7 +278,6 @@ const ProductDetail = () => {
               <div key={review._id} className="review-card">
                 <div className="review-header">
                   <span className="reviewer-name">{review.user.name}</span>
-                  {/* ✅ REMOVED: Rating stars from individual reviews */}
                 </div>
                 <p className="review-date">
                   {new Date(review.createdAt).toLocaleDateString()}
