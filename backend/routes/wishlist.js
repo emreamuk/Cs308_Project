@@ -115,7 +115,7 @@ router.delete('/clear', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-// Bundan aşağısı Ceren senin ama tek tek comment silebilirsin
+
 // ============================================
 // GET /api/wishlist/count - Get wishlist item count
 // ============================================
