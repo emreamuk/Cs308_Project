@@ -136,7 +136,7 @@ router.get('/count', auth, async (req, res) => {
 
 //2
 // ============================================
-// ✅ NEW: POST /api/wishlist/notify-discount/:productId
+// POST /api/wishlist/notify-discount/:productId
 // Notify all users who have this product in wishlist about a discount
 // ============================================
 router.post('/notify-discount/:productId', auth, async (req, res) => {
