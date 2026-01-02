@@ -239,5 +239,6 @@ router.get('/detailed-metrics', auth, checkRole('sales_manager'), async (req, re
   }
 });
 
+// Export the router
 
 module.exports = router;
