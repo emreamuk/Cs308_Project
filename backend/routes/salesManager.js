@@ -5,18 +5,18 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { checkRole } = require('../middleware/roleAuth');
-// ✅ ADDED: Import email notification service
+// Import email notification service
 const { notifyWishlistUsers } = require('../utils/emailService');
 
 
-// ✅ MODIFIED: Apply discount to products AND send email notifications
+// Apply discount to products AND send email notifications
 
 router.post('/discount', auth, checkRole('sales_manager'), async (req, res) => {
   try {
     const { productIds, discountPercentage } = req.body;
 
     const updatedProducts = [];
-    // ✅ ADDED: Track email notification results
+    // Track email notification results
     const emailResults = {
       totalProducts: 0,
       totalEmailsSent: 0,
@@ -34,7 +34,7 @@ router.post('/discount', auth, checkRole('sales_manager'), async (req, res) => {
         await product.save();
         updatedProducts.push(product);
 
-        // ✅ ADDED: Find users who have this product in wishlist
+        // Find users who have this product in wishlist
         const usersWithProductInWishlist = await User.find({
           wishlist: id
         }).select('name email');
@@ -59,7 +59,7 @@ router.post('/discount', auth, checkRole('sales_manager'), async (req, res) => {
     res.json({
       message: 'Discount applied successfully',
       products: updatedProducts,
-      // ✅ ADDED: Include email notification results in response
+      // Include email notification results in response
       emailNotifications: emailResults
     });
   } catch (error) {
@@ -141,11 +141,10 @@ router.get('/analytics', auth, checkRole('sales_manager'), async (req, res) => {
       });
     });
 
-    //Buradan Aşağısı için Ceren Bu commenti sil aşağısını eklediğini söyle
     const profit = revenue - cost;
 
 
-    // ✅ ADDED: Include orderCount and averageOrderValue in response
+    // Include orderCount and averageOrderValue in response
     res.json({
       revenue,
       cost,
@@ -161,7 +160,7 @@ router.get('/analytics', auth, checkRole('sales_manager'), async (req, res) => {
 });
 
 // ============================================
-// ✅ NEW: GET /api/sales/detailed-metrics
+// GET /api/sales/detailed-metrics
 // Get detailed sales metrics (top products, categories, etc.)
 // ============================================
 router.get('/detailed-metrics', auth, checkRole('sales_manager'), async (req, res) => {
@@ -240,6 +239,5 @@ router.get('/detailed-metrics', auth, checkRole('sales_manager'), async (req, re
   }
 });
 
-//****************************************************/
 
 module.exports = router;
