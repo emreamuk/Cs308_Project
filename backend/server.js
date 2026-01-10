@@ -37,16 +37,20 @@ const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const reviewRoutes = require('./routes/reviews');
 const salesManagerRoutes = require('./routes/salesManager');
+const productManagerRoutes = require('./routes/productManager');
 const wishlistRoutes = require('./routes/wishlist');
 const chatRoutes = require('./routes/chat');
+const refundRoutes = require('./routes/refunds');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/sales', salesManagerRoutes);
+app.use('/api/product-manager', productManagerRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/refunds', refundRoutes);
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend is working!' });

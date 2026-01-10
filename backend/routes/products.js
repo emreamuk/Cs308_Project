@@ -2,6 +2,18 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
+const Category = require('../models/Category');
+
+// Get all categories (public endpoint)
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = await Category.find().sort({ name: 1 });
+    res.json(categories);
+  } catch (error) {
+    console.error('Get categories error:', error);
+    res.status(500).json({ message: 'Server error while fetching categories' });
+  }
+});
 
 // Get all products with filtering and sorting
 router.get('/', async (req, res) => {

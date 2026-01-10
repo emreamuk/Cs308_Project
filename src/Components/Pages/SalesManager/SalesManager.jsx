@@ -15,6 +15,10 @@ function SalesManager() {
   const [analytics, setAnalytics] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [detailedMetrics, setDetailedMetrics] = useState(null);
+  const [refunds, setRefunds] = useState([]);
+  const [refundFilter, setRefundFilter] = useState('pending');
+  const [refundStats, setRefundStats] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   // Fetch product list once when the component mounts
   useEffect(() => {
@@ -76,6 +80,61 @@ function SalesManager() {
     const res = await axios.get(`http://localhost:5000/api/sales/detailed-metrics?startDate=${startDate}&endDate=${endDate}`,
       { headers: { Authorization: `Bearer ${token}` } });
     setDetailedMetrics(res.data);
+  };
+
+  // Fetch refund requests
+  const fetchRefunds = async () => {
+    const token = localStorage.getItem('token');
+    const res = await axios.get(`http://localhost:5000/api/sales/refunds?status=${refundFilter}`,
+      { headers: { Authorization: `Bearer ${token}` } });
+    setRefunds(res.data);
+  };
+
+  // Fetch refund statistics
+  const fetchRefundStats = async () => {
+    const token = localStorage.getItem('token');
+    const res = await axios.get('http://localhost:5000/api/sales/refunds/statistics',
+      { headers: { Authorization: `Bearer ${token}` } });
+    setRefundStats(res.data);
+  };
+
+  // Approve refund
+  const approveRefund = async (refundId) => {
+    if (!window.confirm('Are you sure you want to approve this refund? The product will be added back to stock.')) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    try {
+      await axios.patch(`http://localhost:5000/api/sales/refunds/${refundId}/approve`, {},
+        { headers: { Authorization: `Bearer ${token}` } });
+      alert('Refund approved successfully!');
+      fetchRefunds();
+      fetchRefundStats();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to approve refund');
+    }
+  };
+
+  // Reject refund
+  const rejectRefund = async (refundId) => {
+    const reason = prompt('Please enter the reason for rejection:');
+    if (!reason || reason.trim() === '') {
+      alert('Rejection reason is required');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    try {
+      await axios.patch(`http://localhost:5000/api/sales/refunds/${refundId}/reject`,
+        { rejectionReason: reason },
+        { headers: { Authorization: `Bearer ${token}` } });
+      alert('Refund rejected');
+      fetchRefunds();
+      fetchRefundStats();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to reject refund');
+    }
   };
 
   return (
@@ -252,6 +311,140 @@ function SalesManager() {
 
           </div>
         )}
+      </div>
+
+      {}
+      <div className="section">
+        <h2>Refund Management</h2>
+        <div style={{ marginBottom: '20px' }}>
+          <button onClick={fetchRefundStats}>Get Refund Statistics</button>
+          {refundStats && (
+            <div className="analytics" style={{ marginTop: '15px' }}>
+              <p><strong>Total Refund Requests:</strong> {refundStats.total}</p>
+              <p><strong>Pending:</strong> {refundStats.byStatus.pending}</p>
+              <p><strong>Approved:</strong> {refundStats.byStatus.approved}</p>
+              <p><strong>Rejected:</strong> {refundStats.byStatus.rejected}</p>
+              <p><strong>Total Refunded Amount:</strong> ${refundStats.totalRefundAmount.toFixed(2)}</p>
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ marginRight: '10px' }}>Filter by Status:</label>
+          <select value={refundFilter} onChange={(e) => setRefundFilter(e.target.value)}>
+            <option value="all">All</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <button onClick={fetchRefunds} style={{ marginLeft: '10px' }}>Load Refunds</button>
+        </div>
+
+        <div className="refunds-list">
+          {refunds.length === 0 ? (
+            <p>No refund requests found</p>
+          ) : (
+            refunds.map(refund => (
+              <div key={refund._id} className="refund-card" style={{
+                background: 'white',
+                padding: '20px',
+                marginBottom: '15px',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                borderLeft: `4px solid ${
+                  refund.status === 'pending' ? '#ff9800' :
+                  refund.status === 'approved' ? '#4caf50' : '#f44336'
+                }`
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <div>
+                    <h4 style={{ marginBottom: '5px' }}>{refund.product?.name || 'Product deleted'}</h4>
+                    <p style={{ color: '#666', fontSize: '14px' }}>
+                      Customer: {refund.user?.name} ({refund.user?.email})
+                    </p>
+                  </div>
+                  <span style={{
+                    padding: '5px 10px',
+                    borderRadius: '15px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: 'white',
+                    background: refund.status === 'pending' ? '#ff9800' :
+                               refund.status === 'approved' ? '#4caf50' : '#f44336'
+                  }}>
+                    {refund.status.toUpperCase()}
+                  </span>
+                </div>
+
+                <div style={{ marginBottom: '10px', padding: '10px', background: '#f5f5f5', borderRadius: '5px' }}>
+                  <p><strong>Quantity:</strong> {refund.quantity}</p>
+                  <p><strong>Refund Amount:</strong> ${refund.refundAmount.toFixed(2)}</p>
+                  <p><strong>Reason:</strong> {refund.reason}</p>
+                  <p style={{ fontSize: '13px', color: '#777' }}>
+                    <strong>Requested:</strong> {new Date(refund.createdAt).toLocaleString()}
+                  </p>
+                  {refund.order?.deliveryCompletedAt && (
+                    <p style={{ fontSize: '13px', color: '#777' }}>
+                      <strong>Delivered:</strong> {new Date(refund.order.deliveryCompletedAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+
+                {refund.status === 'pending' && (
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => approveRefund(refund._id)}
+                      style={{
+                        padding: '8px 16px',
+                        background: '#4caf50',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Approve Refund
+                    </button>
+                    <button
+                      onClick={() => rejectRefund(refund._id)}
+                      style={{
+                        padding: '8px 16px',
+                        background: '#f44336',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Reject Refund
+                    </button>
+                  </div>
+                )}
+
+                {refund.status === 'approved' && refund.reviewedBy && (
+                  <p style={{ fontSize: '13px', color: '#4caf50', marginTop: '10px' }}>
+                    ✓ Approved by {refund.reviewedBy.name} on {new Date(refund.reviewedAt).toLocaleString()}
+                  </p>
+                )}
+
+                {refund.status === 'rejected' && (
+                  <div style={{ marginTop: '10px', padding: '10px', background: '#ffebee', borderRadius: '5px' }}>
+                    <p style={{ fontSize: '13px', color: '#c62828' }}>
+                      <strong>Rejection Reason:</strong> {refund.rejectionReason}
+                    </p>
+                    {refund.reviewedBy && (
+                      <p style={{ fontSize: '13px', color: '#666' }}>
+                        Rejected by {refund.reviewedBy.name} on {new Date(refund.reviewedAt).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {}
