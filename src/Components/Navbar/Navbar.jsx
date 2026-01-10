@@ -42,6 +42,7 @@ const Navbar = () => {
         <li onClick={() => navigate('/')}>Shop</li>
         <li onClick={() => navigate('/search')}>Search</li>
         <li onClick={() => navigate('/orders')}>My Orders</li>
+        {user && <li onClick={() => navigate('/profile')}>Profile</li>}
         {user && user.role === 'product_manager' && (
           <li onClick={() => navigate('/product-manager')}>Manager</li>
         )}

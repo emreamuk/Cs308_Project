@@ -90,34 +90,106 @@ router.post('/start', async (req, res) => {
       });
     }
 
-    // Fetch customer context if logged in
+    // ✅ ENHANCED: Fetch comprehensive customer context if logged in
     let customerContext = {
+      profile: null,
       recentOrders: [],
-      wishlist: [],
-      cart: null
+      cart: null,
+      wishlist: []
     };
 
     if (userId) {
       try {
-        const user = await User.findById(userId);
+        // Get user profile
+        const user = await User.findById(userId).select('name email homeAddress taxID');
         if (user) {
-          // Store references to wishlist and cart IDs (not populated)
-          // The actual product/cart data isn't needed for support chat
-          customerContext.wishlist = user.wishlist || [];
-          customerContext.cart = user.cart || null;
+          customerContext.profile = {
+            name: user.name,
+            email: user.email,
+            homeAddress: user.homeAddress || null,
+            taxID: user.taxID || null
+          };
         }
 
-        // Get recent orders
+        // Get recent orders with full details
         const recentOrders = await Order.find({ user: userId })
+          .populate('orderItems.product', 'name imageUrl price')
           .sort({ createdAt: -1 })
-          .limit(5);
-        customerContext.recentOrders = recentOrders.map(o => o._id);
+          .limit(5)
+          .lean();
+        
+        // Format orders for storage
+        customerContext.recentOrders = recentOrders.map(order => ({
+          _id: order._id,
+          orderItems: order.orderItems.map(item => ({
+            product: item.product ? {
+              _id: item.product._id,
+              name: item.product.name,
+              imageUrl: item.product.imageUrl,
+              price: item.product.price
+            } : null,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          totalPrice: order.totalPrice,
+          status: order.status,
+          deliveryAddress: order.deliveryAddress,
+          createdAt: order.createdAt
+        }));
+
+        // Get wishlist with product details
+        const userWithWishlist = await User.findById(userId)
+          .populate('wishlist', 'name price imageUrl quantityInStock')
+          .lean();
+        
+        if (userWithWishlist && userWithWishlist.wishlist) {
+          customerContext.wishlist = userWithWishlist.wishlist.map(item => ({
+            _id: item._id,
+            name: item.name,
+            price: item.price,
+            imageUrl: item.imageUrl,
+            quantityInStock: item.quantityInStock
+          }));
+        }
+
+        // Get cart contents
+        try {
+          const Cart = require('../models/Cart');
+          const cart = await Cart.findOne({ userId })
+            .populate('items.product', 'name price imageUrl quantityInStock')
+            .lean();
+          
+          if (cart && cart.items && cart.items.length > 0) {
+            const totalItems = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+            const subtotal = cart.items.reduce((sum, item) => sum + (item.quantity * item.priceAtAdd), 0);
+            
+            customerContext.cart = {
+              items: cart.items.map(item => ({
+                product: item.product ? {
+                  _id: item.product._id,
+                  name: item.product.name,
+                  price: item.product.price,
+                  imageUrl: item.product.imageUrl,
+                  quantityInStock: item.product.quantityInStock
+                } : null,
+                quantity: item.quantity,
+                priceAtAdd: item.priceAtAdd
+              })),
+              totalItems,
+              subtotal
+            };
+          }
+        } catch (cartError) {
+          console.log('Cart not available or error:', cartError.message);
+        }
+
       } catch (contextError) {
         console.error('Error fetching customer context:', contextError);
       }
     }
 
-    // Create new chat
+    // Create new chat with enhanced context
     const newChat = new Chat({
       customer: {
         userId: userId || null,
@@ -209,8 +281,6 @@ router.get('/my-active-chats', auth, isSupportAgent, async (req, res) => {
       status: 'active'
     })
     .sort({ updatedAt: -1 });
-    // Note: Removed populate for cart/wishlist as those models may not exist
-    // Customer context is still stored in the chat document itself
 
     res.json({ chats: activeChats });
   } catch (error) {
@@ -305,19 +375,23 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    console.log('✅ File uploaded:', req.file);
+
     const fileData = {
-      filename: req.file.filename,
-      path: `/uploads/chat-attachments/${req.file.filename}`,
+      filename: req.file.originalname,
+      url: `/uploads/chat-attachments/${req.file.filename}`,
+      type: req.file.mimetype.startsWith('image/') ? 'image' : 'file',
       mimetype: req.file.mimetype,
       size: req.file.size
     };
 
     res.json({ 
       message: 'File uploaded successfully',
-      file: fileData 
+      file: fileData,
+      ...fileData  // Also send at top level for backward compatibility
     });
   } catch (error) {
-    console.error('Error uploading file:', error);
+    console.error('❌ Error uploading file:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
