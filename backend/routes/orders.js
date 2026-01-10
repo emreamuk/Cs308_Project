@@ -4,6 +4,7 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
+const Invoice = require('../models/Invoice');
 const auth = require('../middleware/auth');
 const { checkRole } = require('../middleware/roleAuth');
 const { sendOrderConfirmation } = require('../services/emailService');
@@ -64,10 +65,62 @@ router.post('/', auth, async (req, res) => {
 
     await order.save();
 
+    // CREATE INVOICE FOR THE ORDER
+    try {
+      const user = await User.findById(req.user.id);
+
+      // Calculate invoice items with totals
+      const invoiceItems = validatedItems.map(item => ({
+        product: item.product,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.quantity * item.price
+      }));
+
+      // Calculate subtotal
+      const subtotal = invoiceItems.reduce((sum, item) => sum + item.total, 0);
+
+      // Calculate tax (18% VAT)
+      const tax = subtotal * 0.18;
+
+      // Total amount
+      const totalAmount = subtotal + tax;
+
+      // Generate invoice number
+      const invoiceCount = await Invoice.countDocuments();
+      const invoiceNumber = `INV-${Date.now()}-${invoiceCount + 1}`;
+
+      // Create invoice
+      const invoice = new Invoice({
+        invoiceNumber,
+        order: order._id,
+        customer: req.user.id,
+        customerInfo: {
+          name: user.name,
+          email: user.email,
+          address: deliveryAddress,
+          taxID: user.taxID || ''
+        },
+        items: invoiceItems,
+        subtotal,
+        discount: 0,
+        tax,
+        totalAmount,
+        invoiceDate: order.createdAt,
+        status: 'paid'
+      });
+
+      await invoice.save();
+      console.log(`✅ Invoice created for order ${order._id}`);
+    } catch (invoiceError) {
+      console.error('Invoice creation failed, but order was created:', invoiceError);
+    }
+
     // SEND EMAIL NOTIFICATION
     try {
       const user = await User.findById(req.user.id);
-      
+
       if (user && user.email) {
         await sendOrderConfirmation(user.email, {
           orderId: order._id,
@@ -76,7 +129,7 @@ router.post('/', auth, async (req, res) => {
           deliveryAddress,
           createdAt: order.createdAt
         });
-        
+
         console.log(`📧 Order confirmation email sent to ${user.email}`);
       }
     } catch (emailError) {
@@ -91,7 +144,11 @@ router.post('/', auth, async (req, res) => {
 
   } catch (error) {
     console.error('Create order error:', error);
-    res.status(500).json({ message: 'Server error while creating order' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({
+      message: 'Server error while creating order',
+      error: error.message
+    });
   }
 });
 
