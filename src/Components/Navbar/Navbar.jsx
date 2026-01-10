@@ -48,6 +48,9 @@ const Navbar = () => {
           {user && user.role === 'sales_manager' && (
           <li onClick={() => navigate('/sales-manager')}>Selling Products </li>
         )}
+        {user && user.role === 'support_agent' && (
+          <li onClick={() => navigate('/support-agent')}>Support</li>
+        )}
       </ul>
 
       {/* 3. Action Icons & Auth Section */}
