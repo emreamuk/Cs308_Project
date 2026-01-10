@@ -75,6 +75,10 @@ const chatSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Product'
     }],
+    wishlistCount: {
+      type: Number,
+      default: 0
+    },
     cart: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Cart'
