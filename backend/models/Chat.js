@@ -67,18 +67,52 @@ const chatSchema = new mongoose.Schema({
 
   // Customer context (for logged-in users)
   customerContext: {
+    profile: {
+      name: String,
+      email: String,
+      homeAddress: String,
+      taxID: String
+    },
     recentOrders: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Order'
-    }],
-    wishlist: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Product'
+      _id: mongoose.Schema.Types.ObjectId,
+      orderItems: [{
+        product: {
+          _id: mongoose.Schema.Types.ObjectId,
+          name: String,
+          imageUrl: String,
+          price: Number
+        },
+        name: String,
+        quantity: Number,
+        price: Number
+      }],
+      totalPrice: Number,
+      status: String,
+      deliveryAddress: String,
+      createdAt: Date
     }],
     cart: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Cart'
-    }
+      items: [{
+        product: {
+          _id: mongoose.Schema.Types.ObjectId,
+          name: String,
+          price: Number,
+          imageUrl: String,
+          quantityInStock: Number
+        },
+        quantity: Number,
+        priceAtAdd: Number
+      }],
+      totalItems: Number,
+      subtotal: Number
+    },
+    wishlist: [{
+      _id: mongoose.Schema.Types.ObjectId,
+      name: String,
+      price: Number,
+      imageUrl: String,
+      quantityInStock: Number
+    }]
   },
 
   // Timestamps
@@ -96,7 +130,7 @@ const chatSchema = new mongoose.Schema({
   }
 });
 
-// Pre-save middleware - removed 'next' parameter for async function
+// Pre-save middleware
 chatSchema.pre('save', async function() {
   // Generate session ID for guest users if not present
   if (!this.customer.userId && !this.customer.guestSessionId) {

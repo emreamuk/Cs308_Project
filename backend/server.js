@@ -6,9 +6,12 @@ const http = require('http');
 const socketIo = require('socket.io');
 const connectDB = require('./config/db');
 const initializeChatSocket = require('./socket/chatSocket');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 //Socket.io configuration
 const io = socketIo(server, {
@@ -39,7 +42,9 @@ const reviewRoutes = require('./routes/reviews');
 const salesManagerRoutes = require('./routes/salesManager');
 const wishlistRoutes = require('./routes/wishlist');
 const chatRoutes = require('./routes/chat');
+const userRoutes = require('./routes/users');
 
+app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
