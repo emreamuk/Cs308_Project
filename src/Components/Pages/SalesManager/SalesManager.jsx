@@ -1,277 +1,5 @@
-// import React, { useState, useEffect } from 'react';
-// import axios from 'axios';
-// import './SalesManager.css';
-// // Chart components used for visualizing sales analytics
-// import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-// // SalesManager component responsible for managing discounts,
-// // viewing sales analytics, and displaying invoices
-// function SalesManager() {
-//   const [products, setProducts] = useState([]);
-//   const [selectedProducts, setSelectedProducts] = useState([]);
-//   const [discount, setDiscount] = useState(0);
-//   const [startDate, setStartDate] = useState('');
-//   const [endDate, setEndDate] = useState('');
-//   const [analytics, setAnalytics] = useState(null);
-//   const [invoices, setInvoices] = useState([]);
-//   const [detailedMetrics, setDetailedMetrics] = useState(null);
-
-//   // Fetch product list once when the component mounts
-//   useEffect(() => {
-//     fetchProducts();
-//   }, []);
-
-//   // Retrieves all products from the backend
-//   const fetchProducts = async () => {
-//     const res = await axios.get('http://localhost:5000/api/products');
-//     setProducts(res.data);
-//   };
-
-//   // Applies a discount to the selected products
-//   const applyDiscount = async () => {
-//     const token = localStorage.getItem('token');
-//     await axios.post('http://localhost:5000/api/sales/discount', {
-//       productIds: selectedProducts,
-//       discountPercentage: discount
-//     }, { headers: { Authorization: `Bearer ${token}` } });
-//     alert('Discount applied!');
-//     fetchProducts();
-//   };
-
-//   // Removes discount from selected products and restores original prices
-//   const removeDiscount = async () => {
-//     const token = localStorage.getItem('token');
-//     try {
-//       await axios.post('http://localhost:5000/api/sales/undiscount', {
-//         productIds: selectedProducts
-//       }, { headers: { Authorization: `Bearer ${token}` } });
-      
-//       alert('Discounts disabled and prices restored!');
-//       fetchProducts(); 
-//     } catch (error) {
-//       console.error('Error removing discount:', error);
-//       alert('Failed to remove discount.');
-//     }
-//   };
-
-//   // Fetches revenue, cost, and profit analytics for the given date range
-
-//   const getAnalytics = async () => {
-//     const token = localStorage.getItem('token');
-//     const res = await axios.get(`http://localhost:5000/api/sales/analytics?startDate=${startDate}&endDate=${endDate}`,
-//       { headers: { Authorization: `Bearer ${token}` } });
-//     setAnalytics(res.data);
-//   };
-
-//   // Retrieves invoice data for the selected date range
-//   const getInvoices = async () => {
-//     const token = localStorage.getItem('token');
-//     const res = await axios.get(`http://localhost:5000/api/sales/invoices?startDate=${startDate}&endDate=${endDate}`,
-//       { headers: { Authorization: `Bearer ${token}` } });
-//     setInvoices(res.data);
-//   };
-//   // Fetches detailed sales metrics used for charts and breakdown tables
-//   const getDetailedMetrics = async () => {
-//     const token = localStorage.getItem('token');
-//     const res = await axios.get(`http://localhost:5000/api/sales/detailed-metrics?startDate=${startDate}&endDate=${endDate}`,
-//       { headers: { Authorization: `Bearer ${token}` } });
-//     setDetailedMetrics(res.data);
-//   };
-
-//   return (
-//     <div className="sales-manager">
-//       <h1>Sales Manager Dashboard</h1>
-
-//       {}
-//       <div className="section">
-//         <h2>Apply Discount</h2>
-//         <select multiple onChange={(e) => setSelectedProducts(Array.from(e.target.selectedOptions, opt => opt.value))}>
-//           {products.map(p => (
-//             <option key={p._id} value={p._id}>
-//               {p.name} - ${p.price} {p.originalPrice && p.originalPrice !== p.price ? `(Original: $${p.originalPrice})` : ''}
-//             </option>
-//           ))}
-//         </select>
-
-//         <div className="discountRate">
-//           <input type="number" placeholder="Discount %" value={discount} onChange={(e) => setDiscount(e.target.value)} />
-//         </div>
-        
-        
-//         <div className="button-group">
-//           <button onClick={applyDiscount}>Apply Discount</button>
-          
-//           {}
-//           <button onClick={removeDiscount} style={{ backgroundColor: '#6c757d', marginLeft: '10px' }}>
-//             Disable Discount
-//           </button>
-//         </div>
-//       </div>
-
-//       {}
-//       <div className="section">
-//         <h2>Revenue & Profit</h2>
-//         <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-//         <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-//         <button onClick={getAnalytics}>Get Analytics</button>
-//         {analytics && (
-//           <div className="analytics">
-//             <p><strong>Revenue:</strong> ${analytics.revenue.toFixed(2)}</p>
-//             <p><strong>Cost:</strong> ${analytics.cost.toFixed(2)}</p>
-//             <p><strong>Profit:</strong> ${analytics.profit.toFixed(2)}</p>
-//             <p><strong>Orders:</strong> {analytics.orderCount}</p>
-//             <p><strong>Average Order Value:</strong> ${analytics.averageOrderValue.toFixed(2)}</p>
-//             <p><strong>Profit Margin:</strong> {((analytics.profit / analytics.revenue) * 100).toFixed(1)}%</p>
-//           </div>
-//         )}
-//       </div>
-
-//       {}
-//       <div className="section">
-//         <h2>Detailed Sales Metrics</h2>
-//         <button onClick={getDetailedMetrics}>Get Detailed Metrics</button>
-
-//         {detailedMetrics && (
-//           <div className="detailed-metrics">
-
-//             {}
-//             <div className="metrics-summary" style={{marginBottom: '20px', padding: '15px', background: '#f5f5f5', borderRadius: '5px'}}>
-//               <h3>Summary</h3>
-//               <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px'}}>
-//                 <div><strong>Total Items Sold:</strong> {detailedMetrics.totalItemsSold}</div>
-//                 <div><strong>Total Orders:</strong> {detailedMetrics.totalOrders}</div>
-//                 <div><strong>Successful Orders:</strong> {detailedMetrics.successfulOrders}</div>
-//                 <div><strong>Cancelled Orders:</strong> {detailedMetrics.cancelledOrders}</div>
-//                 <div><strong>Cancellation Rate:</strong> {detailedMetrics.cancellationRate}%</div>
-//               </div>
-//             </div>
-
-//             {}
-//             <div className="top-products" style={{marginBottom: '30px'}}>
-//               <h3>Top 5 Selling Products</h3>
-//               {detailedMetrics.topProducts.length > 0 ? (
-//                 <ResponsiveContainer width="100%" height={300}>
-//                   <BarChart data={detailedMetrics.topProducts}>
-//                     <CartesianGrid strokeDasharray="3 3" />
-//                     <XAxis dataKey="name" />
-//                     <YAxis />
-//                     <Tooltip />
-//                     <Legend />
-//                     <Bar dataKey="quantitySold" fill="#3498db" name="Quantity Sold" />
-//                   </BarChart>
-//                 </ResponsiveContainer>
-//               ) : (
-//                 <p>No products sold in this period</p>
-//               )}
-//             </div>
-
-//             {}
-//             <div className="category-breakdown" style={{marginBottom: '30px'}}>
-//               <h3>Revenue by Category</h3>
-//               {detailedMetrics.categoryBreakdown.length > 0 ? (
-//                 <ResponsiveContainer width="100%" height={300}>
-//                   <PieChart>
-//                     <Pie
-//                       data={detailedMetrics.categoryBreakdown}
-//                       dataKey="revenue"
-//                       nameKey="category"
-//                       cx="50%"
-//                       cy="50%"
-//                       outerRadius={100}
-//                       label={(entry) => `${entry.category}: $${entry.revenue.toFixed(0)}`}
-//                     >
-//                       {detailedMetrics.categoryBreakdown.map((entry, index) => {
-//                         const colors = ['#ff4141', '#3498db', '#27ae60', '#f39c12', '#9b59b6', '#e74c3c'];
-//                         return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
-//                       })}
-//                     </Pie>
-//                     <Tooltip />
-//                     <Legend />
-//                   </PieChart>
-//                 </ResponsiveContainer>
-//               ) : (
-//                 <p>No category data available</p>
-//               )}
-//             </div>
-
-//             {}
-//             <div className="top-products-table" style={{marginBottom: '20px'}}>
-//               <h3>Top Products Details</h3>
-//               {detailedMetrics.topProducts.length > 0 && (
-//                 <table style={{width: '100%', borderCollapse: 'collapse'}}>
-//                   <thead>
-//                     <tr style={{background: '#ff4141', color: 'white'}}>
-//                       <th style={{padding: '10px', textAlign: 'left'}}>Product</th>
-//                       <th style={{padding: '10px', textAlign: 'left'}}>Category</th>
-//                       <th style={{padding: '10px', textAlign: 'right'}}>Qty Sold</th>
-//                       <th style={{padding: '10px', textAlign: 'right'}}>Revenue</th>
-//                     </tr>
-//                   </thead>
-//                   <tbody>
-//                     {detailedMetrics.topProducts.map((product, idx) => (
-//                       <tr key={idx} style={{borderBottom: '1px solid #ddd'}}>
-//                         <td style={{padding: '10px'}}>{product.name}</td>
-//                         <td style={{padding: '10px'}}>{product.category}</td>
-//                         <td style={{padding: '10px', textAlign: 'right'}}>{product.quantitySold}</td>
-//                         <td style={{padding: '10px', textAlign: 'right'}}>${product.revenue.toFixed(2)}</td>
-//                       </tr>
-//                     ))}
-//                   </tbody>
-//                 </table>
-//               )}
-//             </div>
-
-//             {}
-//             <div className="category-table">
-//               <h3>Category Revenue Breakdown</h3>
-//               {detailedMetrics.categoryBreakdown.length > 0 && (
-//                 <table style={{width: '100%', borderCollapse: 'collapse'}}>
-//                   <thead>
-//                     <tr style={{background: '#27ae60', color: 'white'}}>
-//                       <th style={{padding: '10px', textAlign: 'left'}}>Category</th>
-//                       <th style={{padding: '10px', textAlign: 'right'}}>Revenue</th>
-//                       <th style={{padding: '10px', textAlign: 'right'}}>% of Total</th>
-//                     </tr>
-//                   </thead>
-//                   <tbody>
-//                     {detailedMetrics.categoryBreakdown.map((cat, idx) => {
-//                       const totalRevenue = detailedMetrics.categoryBreakdown.reduce((sum, c) => sum + c.revenue, 0);
-//                       const percentage = ((cat.revenue / totalRevenue) * 100).toFixed(1);
-//                       return (
-//                         <tr key={idx} style={{borderBottom: '1px solid #ddd'}}>
-//                           <td style={{padding: '10px'}}>{cat.category}</td>
-//                           <td style={{padding: '10px', textAlign: 'right'}}>${cat.revenue.toFixed(2)}</td>
-//                           <td style={{padding: '10px', textAlign: 'right'}}>{percentage}%</td>
-//                         </tr>
-//                       );
-//                     })}
-//                   </tbody>
-//                 </table>
-//               )}
-//             </div>
-
-//           </div>
-//         )}
-//       </div>
-
-//       {}
-//       <div className="section">
-//         <h2>View Invoices</h2>
-//         <button onClick={getInvoices}>Get Invoices</button>
-//         <div className="invoices">
-//           {invoices.map(inv => (
-//             <div key={inv._id} className="invoice">
-//               <p>Order #{inv._id.slice(-6)} - ${inv.totalPrice} - {inv.user.email}</p>
-//             </div>
-//           ))}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// export default SalesManager;
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import API from '../../../services/api';
 import './SalesManager.css';
 import InvoiceDetail from '../Invoice/InvoiceDetail';
@@ -286,9 +14,16 @@ function SalesManager() {
   const [analytics, setAnalytics] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [detailedMetrics, setDetailedMetrics] = useState(null);
+
+  // Invoice features
   const [invoiceStats, setInvoiceStats] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
+
+  // Refund features
+  const [refunds, setRefunds] = useState([]);
+  const [refundFilter, setRefundFilter] = useState('pending');
+  const [refundStats, setRefundStats] = useState(null);
 
   useEffect(() => {
     fetchProducts();
@@ -389,6 +124,61 @@ function SalesManager() {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // Fetch refund requests
+  const fetchRefunds = async () => {
+    const token = localStorage.getItem('token');
+    const res = await axios.get(`http://localhost:5000/api/sales/refunds?status=${refundFilter}`,
+      { headers: { Authorization: `Bearer ${token}` } });
+    setRefunds(res.data);
+  };
+
+  // Fetch refund statistics
+  const fetchRefundStats = async () => {
+    const token = localStorage.getItem('token');
+    const res = await axios.get('http://localhost:5000/api/sales/refunds/statistics',
+      { headers: { Authorization: `Bearer ${token}` } });
+    setRefundStats(res.data);
+  };
+
+  // Approve refund
+  const approveRefund = async (refundId) => {
+    if (!window.confirm('Are you sure you want to approve this refund? The product will be added back to stock.')) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    try {
+      await axios.patch(`http://localhost:5000/api/sales/refunds/${refundId}/approve`, {},
+        { headers: { Authorization: `Bearer ${token}` } });
+      alert('Refund approved successfully!');
+      fetchRefunds();
+      fetchRefundStats();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to approve refund');
+    }
+  };
+
+  // Reject refund
+  const rejectRefund = async (refundId) => {
+    const reason = prompt('Please enter the reason for rejection:');
+    if (!reason || reason.trim() === '') {
+      alert('Rejection reason is required');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    try {
+      await axios.patch(`http://localhost:5000/api/sales/refunds/${refundId}/reject`,
+        { rejectionReason: reason },
+        { headers: { Authorization: `Bearer ${token}` } });
+      alert('Refund rejected');
+      fetchRefunds();
+      fetchRefundStats();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to reject refund');
+    }
   };
 
   return (
@@ -604,6 +394,140 @@ function SalesManager() {
         {invoices.length === 0 && invoiceStats && (
           <p className="no-data">No invoices found for the selected date range.</p>
         )}
+      </div>
+
+      {/* Refund Management Section */}
+      <div className="section">
+        <h2>Refund Management</h2>
+        <div style={{ marginBottom: '20px' }}>
+          <button onClick={fetchRefundStats}>Get Refund Statistics</button>
+          {refundStats && (
+            <div className="analytics" style={{ marginTop: '15px' }}>
+              <p><strong>Total Refund Requests:</strong> {refundStats.total}</p>
+              <p><strong>Pending:</strong> {refundStats.byStatus.pending}</p>
+              <p><strong>Approved:</strong> {refundStats.byStatus.approved}</p>
+              <p><strong>Rejected:</strong> {refundStats.byStatus.rejected}</p>
+              <p><strong>Total Refunded Amount:</strong> ${refundStats.totalRefundAmount.toFixed(2)}</p>
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ marginRight: '10px' }}>Filter by Status:</label>
+          <select value={refundFilter} onChange={(e) => setRefundFilter(e.target.value)}>
+            <option value="all">All</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <button onClick={fetchRefunds} style={{ marginLeft: '10px' }}>Load Refunds</button>
+        </div>
+
+        <div className="refunds-list">
+          {refunds.length === 0 ? (
+            <p>No refund requests found</p>
+          ) : (
+            refunds.map(refund => (
+              <div key={refund._id} className="refund-card" style={{
+                background: 'white',
+                padding: '20px',
+                marginBottom: '15px',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                borderLeft: `4px solid ${
+                  refund.status === 'pending' ? '#ff9800' :
+                  refund.status === 'approved' ? '#4caf50' : '#f44336'
+                }`
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <div>
+                    <h4 style={{ marginBottom: '5px' }}>{refund.product?.name || 'Product deleted'}</h4>
+                    <p style={{ color: '#666', fontSize: '14px' }}>
+                      Customer: {refund.user?.name} ({refund.user?.email})
+                    </p>
+                  </div>
+                  <span style={{
+                    padding: '5px 10px',
+                    borderRadius: '15px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: 'white',
+                    background: refund.status === 'pending' ? '#ff9800' :
+                               refund.status === 'approved' ? '#4caf50' : '#f44336'
+                  }}>
+                    {refund.status.toUpperCase()}
+                  </span>
+                </div>
+
+                <div style={{ marginBottom: '10px', padding: '10px', background: '#f5f5f5', borderRadius: '5px' }}>
+                  <p><strong>Quantity:</strong> {refund.quantity}</p>
+                  <p><strong>Refund Amount:</strong> ${refund.refundAmount.toFixed(2)}</p>
+                  <p><strong>Reason:</strong> {refund.reason}</p>
+                  <p style={{ fontSize: '13px', color: '#777' }}>
+                    <strong>Requested:</strong> {new Date(refund.createdAt).toLocaleString()}
+                  </p>
+                  {refund.order?.deliveryCompletedAt && (
+                    <p style={{ fontSize: '13px', color: '#777' }}>
+                      <strong>Delivered:</strong> {new Date(refund.order.deliveryCompletedAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+
+                {refund.status === 'pending' && (
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => approveRefund(refund._id)}
+                      style={{
+                        padding: '8px 16px',
+                        background: '#4caf50',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Approve Refund
+                    </button>
+                    <button
+                      onClick={() => rejectRefund(refund._id)}
+                      style={{
+                        padding: '8px 16px',
+                        background: '#f44336',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Reject Refund
+                    </button>
+                  </div>
+                )}
+
+                {refund.status === 'approved' && refund.reviewedBy && (
+                  <p style={{ fontSize: '13px', color: '#4caf50', marginTop: '10px' }}>
+                    ✓ Approved by {refund.reviewedBy.name} on {new Date(refund.reviewedAt).toLocaleString()}
+                  </p>
+                )}
+
+                {refund.status === 'rejected' && (
+                  <div style={{ marginTop: '10px', padding: '10px', background: '#ffebee', borderRadius: '5px' }}>
+                    <p style={{ fontSize: '13px', color: '#c62828' }}>
+                      <strong>Rejection Reason:</strong> {refund.rejectionReason}
+                    </p>
+                    {refund.reviewedBy && (
+                      <p style={{ fontSize: '13px', color: '#666' }}>
+                        Rejected by {refund.reviewedBy.name} on {new Date(refund.reviewedAt).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {/* Invoice Detail Modal */}
