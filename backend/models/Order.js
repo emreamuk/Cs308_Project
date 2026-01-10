@@ -25,6 +25,22 @@ const orderSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
+  // Encrypted credit card information
+  paymentInfo: {
+    creditCardNumber: {
+      type: String, // Stored as encrypted string
+      required: true
+    },
+    cardHolderName: {
+      type: String,
+      required: true
+    },
+    expiryDate: {
+      type: String, // Format: MM/YY
+      required: true
+    }
+    // Note: CVV is NEVER stored (even encrypted) for security compliance
+  },
   status: { 
     type: String, 
     default: 'processing',
