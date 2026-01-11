@@ -15,6 +15,7 @@ const Profile = () => {
 
   // User data
   const [userData, setUserData] = useState({
+    id: '',
     name: '',
     email: '',
     taxID: '',
@@ -61,6 +62,7 @@ const Profile = () => {
       const user = response.data;
       
       setUserData({
+        id: user._id || '',
         name: user.name || '',
         email: user.email || '',
         taxID: user.taxID || '',
@@ -240,6 +242,11 @@ const Profile = () => {
                     <div className="info-item">
                       <span className="info-label">Full Name</span>
                       <span className="info-value">{userData.name}</span>
+                    </div>
+
+                    <div className="info-item">
+                      <span className="info-label">User ID</span>
+                      <span className="info-value">{userData.id}</span>
                     </div>
 
                     <div className="info-item">
