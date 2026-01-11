@@ -15,6 +15,7 @@ const orderSchema = new mongoose.Schema({
     },
     name: String,
     quantity: { type: Number, required: true },
+    refundedQuantity: { type: Number, default: 0 },
     price: { type: Number, required: true }
   }],
   totalPrice: { 
