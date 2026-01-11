@@ -4,6 +4,8 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
+const Invoice = require('../models/Invoice');
+const { sendOrderConfirmation } = require('../services/emailService');
 const { encryptCreditCard, decryptCreditCard, maskCreditCard } = require('../utils/encryption');
 
 // ✅ Import auth middleware
@@ -92,10 +94,82 @@ router.post('/', auth, async (req, res) => {
     // Populate product details
     await order.populate('orderItems.product');
 
-    res.status(201).json({ 
-      message: 'Order created successfully', 
-      order 
-    });
+    // Create invoice for this order
+    try {
+      const invoiceItems = order.orderItems.map(item => ({
+        product: item.product._id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.quantity * item.price
+      }));
+
+      const subtotal = invoiceItems.reduce((sum, it) => sum + it.total, 0);
+      const tax = subtotal * 0.18; // 18% VAT
+      const totalAmount = subtotal + tax;
+
+      const user = await User.findById(req.user.id);
+
+      const invoiceNumber = `INV-${order._id.toString().slice(-8)}`;
+
+      const invoice = new Invoice({
+        invoiceNumber,
+        order: order._id,
+        customer: req.user.id,
+        customerInfo: {
+          name: user ? user.name : '',
+          email: user ? user.email : '',
+          address: order.deliveryAddress || '',
+          taxID: user && user.taxID ? user.taxID : ''
+        },
+        items: invoiceItems,
+        subtotal,
+        discount: 0,
+        tax,
+        totalAmount,
+        invoiceDate: order.createdAt,
+        status: 'paid'
+      });
+
+      await invoice.save();
+
+      // Send confirmation email asynchronously; do not block response on email success
+      (async () => {
+        try {
+          const user = await User.findById(req.user.id);
+          if (user && user.email) {
+            await sendOrderConfirmation(user.email, {
+              orderId: order._id,
+              orderItems: order.orderItems.map(it => ({
+                name: it.name,
+                quantity: it.quantity,
+                price: it.price
+              })),
+              totalPrice: totalAmount,
+              deliveryAddress: order.deliveryAddress,
+              createdAt: order.createdAt
+            });
+            console.log(`Invoice email queued for ${user.email}`);
+          }
+        } catch (emailErr) {
+          console.error('Error sending order confirmation email:', emailErr);
+        }
+      })();
+
+      res.status(201).json({ 
+        message: 'Order created successfully', 
+        order,
+        invoice
+      });
+    } catch (invErr) {
+      console.error('Invoice creation error:', invErr);
+      // Still return order even if invoice creation fails
+      res.status(201).json({ 
+        message: 'Order created successfully (invoice creation failed)', 
+        order,
+        invoiceError: invErr.message
+      });
+    }
   } catch (error) {
     console.error('Create order error:', error);
     res.status(500).json({ 

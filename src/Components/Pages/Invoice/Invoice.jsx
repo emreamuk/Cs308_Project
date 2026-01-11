@@ -15,17 +15,22 @@ const Invoice = () => {
   const orderSubmitted = useRef(false);
 
   useEffect(() => {
-    // ✅ CHECK if already submitted
-    if (orderSubmitted.current) {
-      console.log('Order already submitted, skipping...');
+    // If invoice page was reached after Checkout already created the order on the server,
+    // Checkout attaches `orderId` to `orderData`. In that case, skip re-submitting the order.
+    if (!orderData) return;
+
+    if (orderSubmitted.current) return;
+
+    if (orderData.orderId) {
+      console.log('Order already created on server (orderId present), skipping submission.');
+      orderSubmitted.current = true;
+      // Ensure cart is cleared client-side if not already
+      try { clearCart(); } catch (e) { /* ignore */ }
       return;
     }
 
     const submitOrder = async () => {
-      if (!orderData) return;
-
       try {
-        // ✅ MARK as submitted BEFORE API call
         orderSubmitted.current = true;
 
         const orderItems = orderData.items.map(item => ({
@@ -34,7 +39,7 @@ const Invoice = () => {
           price: item.price
         }));
 
-        console.log('Submitting order with items:', orderItems); // ✅ Debug log
+        console.log('Submitting order with items:', orderItems);
 
         const response = await API.post('/orders', {
           orderItems,
@@ -43,14 +48,10 @@ const Invoice = () => {
         });
 
         console.log('✅ Order created successfully:', response.data);
-        
-        // Clear cart after successful order
         clearCart();
-        
       } catch (error) {
         console.error('❌ Order submission error:', error);
         console.error('Error response:', error.response?.data);
-        // ✅ Reset flag if order failed
         orderSubmitted.current = false;
         const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Order was paid but there was an error saving it. Please contact support.';
         alert(errorMsg);
@@ -59,7 +60,7 @@ const Invoice = () => {
 
     submitOrder();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ✅ Empty dependency array - only run once
+  }, []);
 
   const handlePrint = () => {
     window.print();
