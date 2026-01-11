@@ -162,8 +162,21 @@ const Checkout = () => {
       sessionStorage.removeItem('cart');
       setCart([]);
 
+      const orderDataForInvoice = {
+        items: cart.map(item => ({ id: item._id, name: item.name, qty: parseInt(item.quantity) || 1, price: parseFloat(item.price) || 0 })),
+        address: deliveryAddress.trim(),
+        total: calculateTotal()
+      };
+
+      const paymentDetails = {
+        cardNumber: creditCardNumber.replace(/\s/g, '').replace(/.(?=.{4})/g, '*'),
+        cardName: cardHolderName
+      };
+
+      // include server order id so invoice page doesn't re-submit the order
+      orderDataForInvoice.orderId = response.data.order._id || response.data.order?.id;
       alert('Order placed successfully! Order ID: ' + response.data.order._id);
-      navigate('/orders');
+      navigate('/invoice', { state: { orderData: orderDataForInvoice, paymentDetails } });
     } catch (error) {
       console.error('Place order error:', error);
       console.error('Error response:', error.response?.data);
