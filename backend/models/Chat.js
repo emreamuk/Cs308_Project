@@ -1,6 +1,10 @@
 // backend/models/Chat.js
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');
+
+// Simple fallback guest session id generator to avoid ESM import issues in tests
+function generateGuestSessionId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
 
 const chatSchema = new mongoose.Schema({
   // Customer information
@@ -138,7 +142,7 @@ const chatSchema = new mongoose.Schema({
 chatSchema.pre('save', async function() {
   // Generate session ID for guest users if not present
   if (!this.customer.userId && !this.customer.guestSessionId) {
-    this.customer.guestSessionId = uuidv4();
+    this.customer.guestSessionId = generateGuestSessionId();
   }
   
   // Update the updatedAt timestamp
