@@ -27,6 +27,33 @@ function SalesManager() {
 
   useEffect(() => {
     fetchProducts();
+
+    // Set default date range to last 30 days
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+
+    const formatDate = (date) => {
+      return date.toISOString().split('T')[0];
+    };
+
+    const defaultStartDate = formatDate(thirtyDaysAgo);
+    const defaultEndDate = formatDate(today);
+
+    setStartDate(defaultStartDate);
+    setEndDate(defaultEndDate);
+
+    // Automatically fetch analytics with default date range
+    const fetchInitialAnalytics = async () => {
+      try {
+        const res = await API.get(`/sales/analytics?startDate=${defaultStartDate}&endDate=${defaultEndDate}`);
+        setAnalytics(res.data);
+      } catch (error) {
+        console.error('Error fetching initial analytics:', error);
+      }
+    };
+
+    fetchInitialAnalytics();
   }, []);
 
   const fetchProducts = async () => {
@@ -63,8 +90,13 @@ function SalesManager() {
   };
 
   const getAnalytics = async () => {
-    const res = await API.get(`/sales/analytics?startDate=${startDate}&endDate=${endDate}`);
-    setAnalytics(res.data);
+    try {
+      const res = await API.get(`/sales/analytics?startDate=${startDate}&endDate=${endDate}`);
+      setAnalytics(res.data);
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      alert('Failed to fetch analytics');
+    }
   };
 
   // Enhanced invoice fetching with statistics
@@ -128,18 +160,22 @@ function SalesManager() {
 
   // Fetch refund requests
   const fetchRefunds = async () => {
-    const token = localStorage.getItem('token');
-    const res = await axios.get(`http://localhost:5000/api/sales/refunds?status=${refundFilter}`,
-      { headers: { Authorization: `Bearer ${token}` } });
-    setRefunds(res.data);
+    try {
+      const res = await API.get(`/sales/refunds?status=${refundFilter}`);
+      setRefunds(res.data);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to load refunds');
+    }
   };
 
   // Fetch refund statistics
   const fetchRefundStats = async () => {
-    const token = localStorage.getItem('token');
-    const res = await axios.get('http://localhost:5000/api/sales/refunds/statistics',
-      { headers: { Authorization: `Bearer ${token}` } });
-    setRefundStats(res.data);
+    try {
+      const res = await API.get('/sales/refunds/statistics');
+      setRefundStats(res.data);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to load refund statistics');
+    }
   };
 
   // Approve refund
@@ -148,10 +184,8 @@ function SalesManager() {
       return;
     }
 
-    const token = localStorage.getItem('token');
     try {
-      await axios.patch(`http://localhost:5000/api/sales/refunds/${refundId}/approve`, {},
-        { headers: { Authorization: `Bearer ${token}` } });
+      await API.patch(`/sales/refunds/${refundId}/approve`, {});
       alert('Refund approved successfully!');
       fetchRefunds();
       fetchRefundStats();
@@ -168,11 +202,8 @@ function SalesManager() {
       return;
     }
 
-    const token = localStorage.getItem('token');
     try {
-      await axios.patch(`http://localhost:5000/api/sales/refunds/${refundId}/reject`,
-        { rejectionReason: reason },
-        { headers: { Authorization: `Bearer ${token}` } });
+      await API.patch(`/sales/refunds/${refundId}/reject`, { rejectionReason: reason });
       alert('Refund rejected');
       fetchRefunds();
       fetchRefundStats();

@@ -60,7 +60,7 @@ const ProductDetail = () => {
   const handleSubmitReview = async (e) => {
     e.preventDefault();
 
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (!token) {
       alert('Please login to submit a review');
       navigate('/login');
@@ -86,7 +86,7 @@ const ProductDetail = () => {
   };
 
   const handleQuickRating = async (ratingValue) => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (!token) {
       alert('Please login to rate this product');
       navigate('/login');

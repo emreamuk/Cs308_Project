@@ -20,7 +20,7 @@ const Checkout = () => {
 
   useEffect(() => {
     // Check authentication
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (!token) {
       alert('Please login to checkout');
       navigate('/login');
@@ -28,7 +28,7 @@ const Checkout = () => {
     }
 
     // Get user info
-    const userData = localStorage.getItem('user');
+    const userData = sessionStorage.getItem('user');
     if (userData) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
@@ -40,7 +40,7 @@ const Checkout = () => {
     }
 
     // Load cart from localStorage
-    const savedCart = localStorage.getItem('cart');
+    const savedCart = sessionStorage.getItem('cart');
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
@@ -159,7 +159,7 @@ const Checkout = () => {
       const response = await API.post('/orders', orderData);
 
       // Clear cart
-      localStorage.removeItem('cart');
+      sessionStorage.removeItem('cart');
       setCart([]);
 
       alert('Order placed successfully! Order ID: ' + response.data.order._id);

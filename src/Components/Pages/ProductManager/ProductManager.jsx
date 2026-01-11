@@ -33,8 +33,8 @@ const ProductManager = () => {
 
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem('token');
-      const userStr = localStorage.getItem('user');
+      const token = sessionStorage.getItem('token');
+      const userStr = sessionStorage.getItem('user');
 
       if (!token) {
         navigate('/login');
@@ -600,12 +600,14 @@ const ProductManager = () => {
                       Mark as Delivered
                     </button>
                   )}
-                  <button
-                    className={delivery.deliveryCompleted ? 'btn-secondary' : 'btn-primary'}
-                    onClick={() => handleToggleDeliveryCompletion(delivery.deliveryId, delivery.deliveryCompleted)}
-                  >
-                    {delivery.deliveryCompleted ? 'Mark as Pending' : 'Mark as Completed'}
-                  </button>
+                  {delivery.status === 'delivered' && (
+                    <button
+                      className={delivery.deliveryCompleted ? 'btn-secondary' : 'btn-primary'}
+                      onClick={() => handleToggleDeliveryCompletion(delivery.deliveryId, delivery.deliveryCompleted)}
+                    >
+                      {delivery.deliveryCompleted ? 'Mark as Pending' : 'Mark as Completed'}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

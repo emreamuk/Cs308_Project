@@ -11,7 +11,7 @@ export const CartProvider = ({ children }) => {
 
   // Load cart data from localStorage when the app first mounts
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
+    const savedCart = sessionStorage.getItem('cart');
     if (savedCart) {
       try {
         setCartItems(JSON.parse(savedCart));
@@ -26,7 +26,7 @@ export const CartProvider = ({ children }) => {
   // Save cart data to localStorage whenever cartItems change
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem('cart', JSON.stringify(cartItems));
+      sessionStorage.setItem('cart', JSON.stringify(cartItems));
     }
   }, [cartItems, isLoaded]);
 

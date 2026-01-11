@@ -41,14 +41,22 @@ const orderSchema = new mongoose.Schema({
     }
     // Note: CVV is NEVER stored (even encrypted) for security compliance
   },
-  status: { 
-    type: String, 
+  status: {
+    type: String,
     default: 'processing',
     enum: ['processing', 'in-transit', 'delivered', 'cancelled']
   },
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
+  deliveryCompleted: {
+    type: Boolean,
+    default: false
+  },
+  deliveryCompletedAt: {
+    type: Date,
+    default: null
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
 });
 

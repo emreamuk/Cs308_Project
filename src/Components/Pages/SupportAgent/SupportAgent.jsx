@@ -105,7 +105,7 @@ const SupportAgent = () => {
   }, []);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
+    const userStr = sessionStorage.getItem('user');
     if (!userStr) {
       navigate('/login');
       return;
@@ -156,7 +156,7 @@ const SupportAgent = () => {
       setSelectedChat(chat);
       setMessages(chat.messages || []);
 
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       socketRef.current.emit('agent:join', {
         chatId: chat._id,
         token

@@ -37,14 +37,14 @@ const Profile = () => {
 
   // Load user data on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (!token) {
       navigate('/login');
       return;
     }
 
     // Get user from localStorage
-    const userStr = localStorage.getItem('user');
+    const userStr = sessionStorage.getItem('user');
     if (userStr) {
       const user = JSON.parse(userStr);
       
@@ -103,13 +103,13 @@ const Profile = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const userStr = localStorage.getItem('user');
+      const userStr = sessionStorage.getItem('user');
       const user = JSON.parse(userStr);
 
       const response = await API.put(`/users/${user.id}`, formData);
       
       // Update local storage
-      localStorage.setItem('user', JSON.stringify({
+      sessionStorage.setItem('user', JSON.stringify({
         ...user,
         name: response.data.name
       }));
@@ -163,7 +163,7 @@ const Profile = () => {
     setSaving(true);
 
     try {
-      const userStr = localStorage.getItem('user');
+      const userStr = sessionStorage.getItem('user');
       const user = JSON.parse(userStr);
 
       await API.put(`/users/${user.id}/password`, {

@@ -9,7 +9,7 @@ export const WishlistProvider = ({ children }) => {
 
   // Check if user is logged in
   const isLoggedIn = () => {
-    return !!localStorage.getItem('token');
+    return !!sessionStorage.getItem('token');
   };
 
   // Load wishlist from backend if logged in, otherwise use localStorage
@@ -23,14 +23,14 @@ export const WishlistProvider = ({ children }) => {
         } catch (error) {
           console.error('Error loading wishlist from backend:', error);
           // Fallback to localStorage if backend fails
-          const savedWishlist = localStorage.getItem('wishlist');
+          const savedWishlist = sessionStorage.getItem('wishlist');
           if (savedWishlist) {
             setWishlistItems(JSON.parse(savedWishlist));
           }
         }
       } else {
         // Load from localStorage for guest users
-        const savedWishlist = localStorage.getItem('wishlist');
+        const savedWishlist = sessionStorage.getItem('wishlist');
         if (savedWishlist) {
           try {
             setWishlistItems(JSON.parse(savedWishlist));
@@ -49,7 +49,7 @@ export const WishlistProvider = ({ children }) => {
   // Save to localStorage only for guest users
   useEffect(() => {
     if (isLoaded && !isLoggedIn()) {
-      localStorage.setItem('wishlist', JSON.stringify(wishlistItems));
+      sessionStorage.setItem('wishlist', JSON.stringify(wishlistItems));
     }
   }, [wishlistItems, isLoaded]);
 

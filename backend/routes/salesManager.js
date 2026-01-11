@@ -7,7 +7,7 @@ const Refund = require('../models/Refund');
 const auth = require('../middleware/auth');
 const { checkRole } = require('../middleware/roleAuth');
 // Import email notification service
-const { notifyWishlistUsers } = require('../utils/emailService');
+const { notifyWishlistUsers, sendRefundApprovalEmail, sendRefundRejectionEmail } = require('../utils/emailService');
 
 
 // Apply discount to products AND send email notifications
@@ -344,11 +344,22 @@ router.patch('/refunds/:id/approve', auth, checkRole('sales_manager'), async (re
       }
     }
 
-    // TODO: Send email notification to customer
-    // TODO: Process refund to customer's account
+    // Send email notification to customer
+    try {
+      await sendRefundApprovalEmail(
+        refund.user.email,
+        refund.user.name,
+        refund.product.name,
+        refund.quantity,
+        refund.refundAmount
+      );
+    } catch (emailError) {
+      console.error('Failed to send refund approval email:', emailError);
+      // Don't fail the whole operation if email fails
+    }
 
     res.json({
-      message: 'Refund approved successfully. Product added back to stock.',
+      message: 'Refund approved successfully. Product added back to stock. Confirmation email sent to customer.',
       refund
     });
   } catch (error) {
@@ -386,10 +397,21 @@ router.patch('/refunds/:id/reject', auth, checkRole('sales_manager'), async (req
     refund.rejectionReason = rejectionReason;
     await refund.save();
 
-    // TODO: Send email notification to customer
+    // Send email notification to customer
+    try {
+      await sendRefundRejectionEmail(
+        refund.user.email,
+        refund.user.name,
+        refund.product.name,
+        rejectionReason
+      );
+    } catch (emailError) {
+      console.error('Failed to send refund rejection email:', emailError);
+      // Don't fail the whole operation if email fails
+    }
 
     res.json({
-      message: 'Refund rejected',
+      message: 'Refund rejected. Notification email sent to customer.',
       refund
     });
   } catch (error) {

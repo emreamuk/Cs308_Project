@@ -25,7 +25,7 @@ const CustomerChat = () => {
 
   // Get user info if logged in
   useEffect(() => {
-    const userData = localStorage.getItem('user');
+    const userData = sessionStorage.getItem('user');
     if (userData) {
       const user = JSON.parse(userData);
       setCustomerName(user.name);
@@ -40,7 +40,7 @@ const CustomerChat = () => {
 
   const generateSessionId = () => {
     const sessionId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('guestSessionId', sessionId);
+    sessionStorage.setItem('guestSessionId', sessionId);
     return sessionId;
   };
 
@@ -110,7 +110,7 @@ const CustomerChat = () => {
 
   const checkForExistingChat = useCallback(async () => {
     try {
-      const guestSessionId = localStorage.getItem('guestSessionId') || generateSessionId();
+      const guestSessionId = sessionStorage.getItem('guestSessionId') || generateSessionId();
       const response = await API.get(`/chat/my-chat?guestSessionId=${guestSessionId}`);
       
       if (response.data && response.data.chat) {
@@ -156,10 +156,10 @@ const CustomerChat = () => {
     }
 
     try {
-      const guestSessionId = localStorage.getItem('guestSessionId') || generateSessionId();
+      const guestSessionId = sessionStorage.getItem('guestSessionId') || generateSessionId();
       
       // ✅ Get userId from localStorage for logged-in users
-      const userData = localStorage.getItem('user');
+      const userData = sessionStorage.getItem('user');
       const userId = userData ? JSON.parse(userData).id : null;
       
       const response = await API.post('/chat/start', {

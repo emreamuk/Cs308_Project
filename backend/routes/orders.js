@@ -208,6 +208,12 @@ router.get('/', auth, async (req, res) => {
 // Update order status
 router.put('/:id/status', auth, async (req, res) => {
   try {
+    // Check if user is product_manager or admin
+    const user = await User.findById(req.user.id);
+    if (!user || (user.role !== 'product_manager' && user.role !== 'admin')) {
+      return res.status(403).json({ message: 'Access denied. Only product managers can update order status.' });
+    }
+
     const { status } = req.body;
 
     // Validate status
