@@ -15,16 +15,16 @@ const Navbar = () => {
   const { getWishlistCount } = useContext(WishlistContext);
 
   useEffect(() => {
-    // Check if user is logged in via localStorage
-    const userData = localStorage.getItem('user');
+    // Check if user is logged in via sessionStorage
+    const userData = sessionStorage.getItem('user');
     if (userData) {
       setUser(JSON.parse(userData));
     }
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     setUser(null);
     navigate('/');
   };
@@ -42,6 +42,7 @@ const Navbar = () => {
         <li onClick={() => navigate('/')}>Shop</li>
         <li onClick={() => navigate('/search')}>Search</li>
         <li onClick={() => navigate('/orders')}>My Orders</li>
+        {user && <li onClick={() => navigate('/profile')}>Profile</li>}
         {user && user.role === 'product_manager' && (
           <li onClick={() => navigate('/product-manager')}>Manager</li>
         )}

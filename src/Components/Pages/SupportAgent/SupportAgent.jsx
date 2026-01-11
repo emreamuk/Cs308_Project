@@ -13,6 +13,7 @@ const SupportAgent = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [agentName, setAgentName] = useState('');
+  const [showCustomerInfo, setShowCustomerInfo] = useState(true); // ✅ NEW: Toggle state
   
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -45,7 +46,6 @@ const SupportAgent = () => {
   }, []);
 
   const initializeSocket = useCallback(() => {
-    // Disconnect existing socket to prevent duplicates
     if (socketRef.current) {
       socketRef.current.off();
       socketRef.current.disconnect();
@@ -60,11 +60,9 @@ const SupportAgent = () => {
     });
 
     socketRef.current.on('message:received', (data) => {
-      // Update messages if this is the selected chat
       setSelectedChat(currentChat => {
         if (currentChat && data.chatId === currentChat._id) {
           setMessages(prev => {
-            // Prevent duplicates
             const isDuplicate = prev.some(msg => {
               const msgTime = msg.timestamp?.toString();
               const newTime = data.message.timestamp?.toString();
@@ -85,7 +83,6 @@ const SupportAgent = () => {
         return currentChat;
       });
 
-      // Mark chat as having new message
       setActiveChats(prev => prev.map(chat =>
         chat._id === data.chatId
           ? { ...chat, hasNewMessage: true }
@@ -108,8 +105,7 @@ const SupportAgent = () => {
   }, []);
 
   useEffect(() => {
-    // Check if user is support agent
-    const userStr = localStorage.getItem('user');
+    const userStr = sessionStorage.getItem('user');
     if (!userStr) {
       navigate('/login');
       return;
@@ -124,12 +120,10 @@ const SupportAgent = () => {
 
     setAgentName(user.name);
 
-    // Initialize
     fetchQueue();
     fetchActiveChats();
     initializeSocket();
 
-    // Refresh queue every 30 seconds
     const interval = setInterval(fetchQueue, 30000);
 
     return () => {
@@ -146,13 +140,8 @@ const SupportAgent = () => {
     try {
       const response = await API.post(`/chat/${chatId}/claim`);
       
-      // Remove from queue
       setQueueChats(prev => prev.filter(chat => chat._id !== chatId));
-      
-      // Add to active chats
       setActiveChats(prev => [...prev, response.data.chat]);
-      
-      // Select it
       handleSelectChat(response.data.chat);
       
       alert('Chat claimed successfully!');
@@ -164,18 +153,15 @@ const SupportAgent = () => {
 
   const handleSelectChat = async (chat) => {
     try {
-      // Set selected chat and messages from existing chat data
       setSelectedChat(chat);
       setMessages(chat.messages || []);
 
-      // Join socket room
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       socketRef.current.emit('agent:join', {
         chatId: chat._id,
         token
       });
 
-      // Mark as no new messages
       setActiveChats(prev => prev.map(c =>
         c._id === chat._id ? { ...c, hasNewMessage: false } : c
       ));
@@ -197,8 +183,6 @@ const SupportAgent = () => {
     });
 
     setInputMessage('');
-    
-    // Stop typing
     socketRef.current.emit('typing:stop', { chatId: selectedChat._id });
   };
 
@@ -221,27 +205,43 @@ const SupportAgent = () => {
   };
 
   const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
+  // Check file size (10MB limit)
+  if (file.size > 10 * 1024 * 1024) {
+    alert('File size must be less than 10MB');
+    return;
+  }
 
-    try {
-      const response = await API.post('/chat/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+  const formData = new FormData();
+  formData.append('file', file);
 
-      socketRef.current.emit('message:send', {
-        chatId: selectedChat._id,
-        message: `Sent a file: ${file.name}`,
-        senderName: agentName,
-        attachments: [response.data]
-      });
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert('Failed to upload file');
+  try {
+    console.log('📤 Uploading file:', file.name);
+    
+    const response = await API.post('/chat/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    console.log('✅ Upload response:', response.data);
+
+    // Send message with attachment
+    socketRef.current.emit('message:send', {
+      chatId: selectedChat._id,
+      message: `📎 Sent a file: ${file.name}`,
+      senderName: agentName,
+      attachments: [response.data.file || response.data]
+    });
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
+  } catch (error) {
+    console.error('❌ Upload error:', error);
+    alert(error.response?.data?.message || 'Failed to upload file');
+  }
   };
 
   const handleCloseChat = async () => {
@@ -252,7 +252,6 @@ const SupportAgent = () => {
     try {
       await API.post(`/chat/${selectedChat._id}/close`);
       
-      // Remove from active chats
       setActiveChats(prev => prev.filter(chat => chat._id !== selectedChat._id));
       
       setSelectedChat(null);
@@ -315,9 +314,9 @@ const SupportAgent = () => {
             ) : (
               queueChats.map(chat => (
                 <div key={chat._id} className="queue-item">
-                  <div className="queue-item-name">{chat.customerName}</div>
+                  <div className="queue-item-name">{chat.customer?.name}</div>
                   <div className="queue-item-message">
-                    {chat.customerEmail || 'Guest'}
+                    {chat.customer?.email || 'Guest'}
                   </div>
                   <div className="queue-item-time">
                     Waiting since {formatDate(chat.createdAt)}
@@ -370,19 +369,26 @@ const SupportAgent = () => {
             </div>
           ) : (
             <>
-              {/* Customer Info */}
+              {/* Customer Info Panel - COLLAPSIBLE */}
               <div className="customer-info-panel">
                 <div className="customer-info-header">
                   <div className="customer-details">
-                    <h3>{selectedChat.customerName}</h3>
+                    <h3>{selectedChat.customer?.name}</h3>
                     <p className="customer-email">
-                      {selectedChat.customerEmail || 'Guest user'}
+                      {selectedChat.customer?.email || 'Guest user'}
                     </p>
                   </div>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    {selectedChat.customer && (
+                    {selectedChat.customer?.userId && (
                       <span className="customer-badge">Logged In</span>
                     )}
+                    {/* ✅ Toggle Button */}
+                    <button
+                      className="toggle-info-btn"
+                      onClick={() => setShowCustomerInfo(!showCustomerInfo)}
+                    >
+                      {showCustomerInfo ? '▼ Hide Info' : '▶ Show Info'}
+                    </button>
                     <button
                       className="close-chat-btn-agent"
                       onClick={handleCloseChat}
@@ -392,25 +398,162 @@ const SupportAgent = () => {
                   </div>
                 </div>
 
-                {/* Customer Context (if logged in) */}
-                {selectedChat.customerContext && (
-                  <div className="customer-context">
+                {/* ✅ Collapsible Customer Context */}
+                {showCustomerInfo && selectedChat.customerContext && selectedChat.customer?.userId && (
+                  <div className="customer-context-details">
+                    
+                    {/* Profile Info */}
+                    {selectedChat.customerContext.profile && (
+                      <div className="context-section">
+                        <h4>📋 Profile Information</h4>
+                        <div className="context-grid">
+                          <div className="context-item">
+                            <span className="context-label">Email:</span>
+                            <span className="context-value">
+                              {selectedChat.customerContext.profile.email}
+                            </span>
+                          </div>
+                          {selectedChat.customerContext.profile.homeAddress && (
+                            <div className="context-item">
+                              <span className="context-label">Address:</span>
+                              <span className="context-value">
+                                {selectedChat.customerContext.profile.homeAddress}
+                              </span>
+                            </div>
+                          )}
+                          {selectedChat.customerContext.profile.taxID && (
+                            <div className="context-item">
+                              <span className="context-label">Tax ID:</span>
+                              <span className="context-value">
+                                {selectedChat.customerContext.profile.taxID}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Cart Contents */}
+                    {selectedChat.customerContext.cart && 
+                     selectedChat.customerContext.cart.items?.length > 0 && (
+                      <div className="context-section">
+                        <h4>🛒 Current Cart ({selectedChat.customerContext.cart.totalItems} items)</h4>
+                        <div className="cart-items-list">
+                          {selectedChat.customerContext.cart.items.map((item, idx) => (
+                            <div key={idx} className="cart-context-item">
+                              {item.product?.imageUrl && (
+                                <img 
+                                  src={item.product.imageUrl} 
+                                  alt={item.product.name}
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              )}
+                              <div className="cart-item-details">
+                                <span className="item-name">
+                                  {item.product?.name || 'Product'}
+                                </span>
+                                <span className="item-qty">Qty: {item.quantity}</span>
+                                <span className="item-price">
+                                  ${((item.priceAtAdd || 0) * item.quantity).toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                          <div className="cart-total">
+                            <strong>
+                              Subtotal: ${(selectedChat.customerContext.cart.subtotal || 0).toFixed(2)}
+                            </strong>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recent Orders */}
                     {selectedChat.customerContext.recentOrders?.length > 0 && (
-                      <div className="context-item">
-                        <div className="context-label">Recent Orders</div>
-                        <div className="context-value">
-                          {selectedChat.customerContext.recentOrders.length} orders
+                      <div className="context-section">
+                        <h4>📦 Recent Orders ({selectedChat.customerContext.recentOrders.length})</h4>
+                        <div className="orders-list">
+                          {selectedChat.customerContext.recentOrders.map((order, idx) => (
+                            <div key={idx} className="order-context-item">
+                              <div className="order-header">
+                                <span className="order-id">
+                                  #{order._id?.toString().slice(-8)}
+                                </span>
+                                <span className={`order-status status-${order.status}`}>
+                                  {order.status?.toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="order-items">
+                                {order.orderItems?.slice(0, 2).map((item, i) => (
+                                  <span key={i} className="order-item-name">
+                                    • {item.product?.name || item.name} (x{item.quantity})
+                                  </span>
+                                ))}
+                                {order.orderItems?.length > 2 && (
+                                  <span className="more-items">
+                                    +{order.orderItems.length - 2} more
+                                  </span>
+                                )}
+                              </div>
+                              <div className="order-footer">
+                                <span className="order-total">
+                                  ${order.totalPrice?.toFixed(2)}
+                                </span>
+                                <span className="order-date">
+                                  {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
-                    {selectedChat.customerContext.wishlistCount > 0 && (
-                      <div className="context-item">
-                        <div className="context-label">Wishlist</div>
-                        <div className="context-value">
-                          {selectedChat.customerContext.wishlistCount} items
+
+                    {/* Wishlist */}
+                    {selectedChat.customerContext.wishlist?.length > 0 && (
+                      <div className="context-section">
+                        <h4>❤️ Wishlist ({selectedChat.customerContext.wishlist.length} items)</h4>
+                        <div className="wishlist-items">
+                          {selectedChat.customerContext.wishlist.slice(0, 3).map((item, idx) => (
+                            <div key={idx} className="wishlist-context-item">
+                              <span className="wishlist-item-name">{item.name}</span>
+                              <span className="wishlist-item-price">
+                                ${item.price?.toFixed(2)}
+                              </span>
+                              <span className="wishlist-item-stock" style={{
+                                fontSize: '11px',
+                                color: item.quantityInStock > 0 ? '#4CAF50' : '#f44336'
+                              }}>
+                                {item.quantityInStock > 0 ? 'In Stock' : 'Out of Stock'}
+                              </span>
+                            </div>
+                          ))}
+                          {selectedChat.customerContext.wishlist.length > 3 && (
+                            <span className="more-items">
+                              +{selectedChat.customerContext.wishlist.length - 3} more
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Guest User Message */}
+                {showCustomerInfo && !selectedChat.customer?.userId && (
+                  <div className="customer-context-details">
+                    <div className="context-section">
+                      <p style={{ 
+                        textAlign: 'center', 
+                        color: '#999', 
+                        fontSize: '14px',
+                        padding: '20px'
+                      }}>
+                        Guest user - No profile or order history available
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

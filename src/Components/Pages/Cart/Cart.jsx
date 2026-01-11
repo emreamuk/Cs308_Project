@@ -92,7 +92,7 @@ const Cart = () => {
               <span>${getCartTotal().toFixed(2)}</span>
             </div>
             <button className="checkout-btn" onClick={() => {
-              const token = localStorage.getItem('token');
+              const token = sessionStorage.getItem('token');
               if (!token) {
                 alert('Please login to checkout');
                 navigate('/login');

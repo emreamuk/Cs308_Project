@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function Home() {
   const [comics, setComics] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sortBy, setSortBy] = useState('');
@@ -22,8 +23,13 @@ export default function Home() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch categories from public endpoint
+        const categoriesResponse = await API.get('/products/categories');
+        setCategories(categoriesResponse.data);
+
+        // Fetch products
         let url = '/products?';
         if (sortBy) url += `sort=${sortBy}&`;
         if (categoryFilter) url += `category=${categoryFilter}`;
@@ -34,13 +40,13 @@ export default function Home() {
         setComics(response.data);
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching products:', error);
+        console.error('Error fetching data:', error);
         setError('Failed to load products');
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    fetchData();
   }, [sortBy, categoryFilter]);
 
   const handleApplyFilters = () => {
@@ -109,10 +115,9 @@ export default function Home() {
               className="filter-select"
             >
               <option value="">All Categories</option>
-              <option value="Marvel">Marvel</option>
-              <option value="DC">DC</option>
-              <option value="Image">Image</option>
-              <option value="Dark Horse">Dark Horse</option>
+              {categories.map(cat => (
+                <option key={cat._id} value={cat.name}>{cat.name}</option>
+              ))}
             </select>
 
             <select

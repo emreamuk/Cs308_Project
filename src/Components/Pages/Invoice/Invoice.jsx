@@ -49,9 +49,11 @@ const Invoice = () => {
         
       } catch (error) {
         console.error('❌ Order submission error:', error);
+        console.error('Error response:', error.response?.data);
         // ✅ Reset flag if order failed
         orderSubmitted.current = false;
-        alert('Order was paid but there was an error saving it. Please contact support.');
+        const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Order was paid but there was an error saving it. Please contact support.';
+        alert(errorMsg);
       }
     };
 

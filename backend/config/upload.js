@@ -1,31 +1,51 @@
 // backend/config/upload.js
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+// Create uploads directory if it doesn't exist
+const uploadDir = './uploads';
+const chatAttachmentsDir = './uploads/chat-attachments';
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+if (!fs.existsSync(chatAttachmentsDir)) {
+  fs.mkdirSync(chatAttachmentsDir, { recursive: true });
+}
 
 // Configure storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/chat-attachments/'); // Make sure this folder exists
+    // Use chat-attachments folder for chat uploads
+    if (req.path && req.path.includes('/chat/')) {
+      cb(null, chatAttachmentsDir);
+    } else {
+      cb(null, uploadDir);
+    }
   },
   filename: function (req, file, cb) {
+    // Generate unique filename: timestamp-randomstring-originalname
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'chat-' + uniqueSuffix + path.extname(file.originalname));
+    const prefix = req.path && req.path.includes('/chat/') ? 'chat-' : '';
+    cb(null, prefix + uniqueSuffix + '-' + file.originalname);
   }
 });
 
-// File filter - accept images, PDFs, and videos
+// File filter - allow images, common document types, and videos
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|pdf|mp4|mov|avi/;
+  const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mov|avi/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
 
   if (mimetype && extname) {
     return cb(null, true);
   } else {
-    cb(new Error('Only images, PDFs, and videos are allowed'));
+    cb(new Error('Only images, documents, and videos are allowed!'));
   }
 };
 
+// Create multer upload instance
 const upload = multer({
   storage: storage,
   limits: {

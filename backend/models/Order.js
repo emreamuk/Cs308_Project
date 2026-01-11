@@ -25,14 +25,38 @@ const orderSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
-  status: { 
-    type: String, 
+  // Encrypted credit card information
+  paymentInfo: {
+    creditCardNumber: {
+      type: String, // Stored as encrypted string
+      required: true
+    },
+    cardHolderName: {
+      type: String,
+      required: true
+    },
+    expiryDate: {
+      type: String, // Format: MM/YY
+      required: true
+    }
+    // Note: CVV is NEVER stored (even encrypted) for security compliance
+  },
+  status: {
+    type: String,
     default: 'processing',
     enum: ['processing', 'in-transit', 'delivered', 'cancelled']
   },
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
+  deliveryCompleted: {
+    type: Boolean,
+    default: false
+  },
+  deliveryCompletedAt: {
+    type: Date,
+    default: null
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
 });
 

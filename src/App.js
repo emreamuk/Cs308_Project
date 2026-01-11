@@ -21,6 +21,7 @@ import ProductManager from './Components/Pages/ProductManager/ProductManager';
 import SalesManager from './Components/Pages/SalesManager/SalesManager';
 import Wishlist from './Components/Pages/Whistlist/Wishlist';
 import SupportAgent from './Components/Pages/SupportAgent/SupportAgent';
+import Profile from './Components/Pages/Profile/Profile';
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
           <Route path="/product-manager" element={<ProductManager />} />
           <Route path="/sales-manager" element={<SalesManager />} />
           <Route path="/support-agent" element={<SupportAgent />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
 
         <CustomerChat />

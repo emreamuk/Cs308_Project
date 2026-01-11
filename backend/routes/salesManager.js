@@ -3,10 +3,11 @@ const router = express.Router();
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const User = require('../models/User');
+const Refund = require('../models/Refund');
 const auth = require('../middleware/auth');
 const { checkRole } = require('../middleware/roleAuth');
 // Import email notification service
-const { notifyWishlistUsers } = require('../utils/emailService');
+const { notifyWishlistUsers, sendRefundApprovalEmail, sendRefundRejectionEmail } = require('../utils/emailService');
 
 
 // Apply discount to products AND send email notifications
@@ -236,6 +237,186 @@ router.get('/detailed-metrics', auth, checkRole('sales_manager'), async (req, re
   } catch (error) {
     console.error('Error calculating detailed metrics:', error);
     res.status(500).json({ message: 'Error calculating detailed metrics' });
+  }
+});
+
+// ============================================
+// REFUND MANAGEMENT
+// ============================================
+
+// Get all refund requests
+router.get('/refunds', auth, checkRole('sales_manager'), async (req, res) => {
+  try {
+    const { status } = req.query;
+
+    let filter = {};
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+
+    const refunds = await Refund.find(filter)
+      .populate('user', 'name email')
+      .populate('product', 'name imageUrl price')
+      .populate('order', 'createdAt deliveryCompletedAt')
+      .populate('reviewedBy', 'name')
+      .sort({ createdAt: -1 });
+
+    res.json(refunds);
+  } catch (error) {
+    console.error('Get refunds error:', error);
+    res.status(500).json({ message: 'Server error while fetching refunds' });
+  }
+});
+
+// Get refund statistics
+router.get('/refunds/statistics', auth, checkRole('sales_manager'), async (req, res) => {
+  try {
+    const [total, pending, approved, rejected] = await Promise.all([
+      Refund.countDocuments(),
+      Refund.countDocuments({ status: 'pending' }),
+      Refund.countDocuments({ status: 'approved' }),
+      Refund.countDocuments({ status: 'rejected' })
+    ]);
+
+    // Calculate total refund amount
+    const approvedRefunds = await Refund.find({ status: 'approved' });
+    const totalRefundAmount = approvedRefunds.reduce((sum, refund) => sum + refund.refundAmount, 0);
+
+    res.json({
+      total,
+      byStatus: {
+        pending,
+        approved,
+        rejected
+      },
+      totalRefundAmount
+    });
+  } catch (error) {
+    console.error('Get refund statistics error:', error);
+    res.status(500).json({ message: 'Server error while fetching statistics' });
+  }
+});
+
+// Approve refund
+router.patch('/refunds/:id/approve', auth, checkRole('sales_manager'), async (req, res) => {
+  try {
+    const refund = await Refund.findById(req.params.id)
+      .populate('user', 'name email')
+      .populate('product', 'name')
+      .populate('order');
+
+    if (!refund) {
+      return res.status(404).json({ message: 'Refund request not found' });
+    }
+
+    if (refund.status !== 'pending') {
+      return res.status(400).json({
+        message: `Refund already ${refund.status}`
+      });
+    }
+
+    // Update refund status
+    refund.status = 'approved';
+    refund.reviewedBy = req.user.id;
+    refund.reviewedAt = new Date();
+    await refund.save();
+
+    // Add product back to stock
+    const product = await Product.findById(refund.product._id);
+    if (product) {
+      product.quantityInStock += refund.quantity;
+      await product.save();
+    }
+
+    // Update order item to mark as refunded
+    const order = await Order.findById(refund.order._id);
+    if (order) {
+      const orderItem = order.orderItems.find(
+        item => item.product.toString() === refund.product._id.toString()
+      );
+
+      if (orderItem) {
+        orderItem.refundedQuantity = (orderItem.refundedQuantity || 0) + refund.quantity;
+        if (orderItem.refundedQuantity >= orderItem.quantity) {
+          orderItem.refunded = true;
+        }
+        await order.save();
+      }
+    }
+
+    // Send email notification to customer
+    try {
+      await sendRefundApprovalEmail(
+        refund.user.email,
+        refund.user.name,
+        refund.product.name,
+        refund.quantity,
+        refund.refundAmount
+      );
+    } catch (emailError) {
+      console.error('Failed to send refund approval email:', emailError);
+      // Don't fail the whole operation if email fails
+    }
+
+    res.json({
+      message: 'Refund approved successfully. Product added back to stock. Confirmation email sent to customer.',
+      refund
+    });
+  } catch (error) {
+    console.error('Approve refund error:', error);
+    res.status(500).json({ message: 'Server error while approving refund' });
+  }
+});
+
+// Reject refund
+router.patch('/refunds/:id/reject', auth, checkRole('sales_manager'), async (req, res) => {
+  try {
+    const { rejectionReason } = req.body;
+
+    if (!rejectionReason) {
+      return res.status(400).json({ message: 'Rejection reason is required' });
+    }
+
+    const refund = await Refund.findById(req.params.id)
+      .populate('user', 'name email')
+      .populate('product', 'name');
+
+    if (!refund) {
+      return res.status(404).json({ message: 'Refund request not found' });
+    }
+
+    if (refund.status !== 'pending') {
+      return res.status(400).json({
+        message: `Refund already ${refund.status}`
+      });
+    }
+
+    refund.status = 'rejected';
+    refund.reviewedBy = req.user.id;
+    refund.reviewedAt = new Date();
+    refund.rejectionReason = rejectionReason;
+    await refund.save();
+
+    // Send email notification to customer
+    try {
+      await sendRefundRejectionEmail(
+        refund.user.email,
+        refund.user.name,
+        refund.product.name,
+        rejectionReason
+      );
+    } catch (emailError) {
+      console.error('Failed to send refund rejection email:', emailError);
+      // Don't fail the whole operation if email fails
+    }
+
+    res.json({
+      message: 'Refund rejected. Notification email sent to customer.',
+      refund
+    });
+  } catch (error) {
+    console.error('Reject refund error:', error);
+    res.status(500).json({ message: 'Server error while rejecting refund' });
   }
 });
 

@@ -25,7 +25,7 @@ const CustomerChat = () => {
 
   // Get user info if logged in
   useEffect(() => {
-    const userData = localStorage.getItem('user');
+    const userData = sessionStorage.getItem('user');
     if (userData) {
       const user = JSON.parse(userData);
       setCustomerName(user.name);
@@ -40,7 +40,7 @@ const CustomerChat = () => {
 
   const generateSessionId = () => {
     const sessionId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('guestSessionId', sessionId);
+    sessionStorage.setItem('guestSessionId', sessionId);
     return sessionId;
   };
 
@@ -110,7 +110,7 @@ const CustomerChat = () => {
 
   const checkForExistingChat = useCallback(async () => {
     try {
-      const guestSessionId = localStorage.getItem('guestSessionId') || generateSessionId();
+      const guestSessionId = sessionStorage.getItem('guestSessionId') || generateSessionId();
       const response = await API.get(`/chat/my-chat?guestSessionId=${guestSessionId}`);
       
       if (response.data && response.data.chat) {
@@ -156,13 +156,18 @@ const CustomerChat = () => {
     }
 
     try {
-      const guestSessionId = localStorage.getItem('guestSessionId') || generateSessionId();
+      const guestSessionId = sessionStorage.getItem('guestSessionId') || generateSessionId();
+      
+      // ✅ Get userId from localStorage for logged-in users
+      const userData = sessionStorage.getItem('user');
+      const userId = userData ? JSON.parse(userData).id : null;
       
       const response = await API.post('/chat/start', {
         customerName,
         customerEmail,
         guestSessionId,
-        initialMessage
+        initialMessage,
+        userId // ✅ Send userId for context fetching
       });
 
       setChat(response.data.chat);
@@ -219,24 +224,39 @@ const CustomerChat = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Check file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
     try {
+      console.log('📤 Uploading file:', file.name);
+      
       const response = await API.post('/chat/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
+      console.log('✅ Upload response:', response.data);
+
       // Send message with attachment
       socketRef.current.emit('message:send', {
         chatId: chat._id,
-        message: `Sent a file: ${file.name}`,
+        message: `📎 Sent a file: ${file.name}`,
         senderName: customerName,
-        attachments: [response.data]
+        attachments: [response.data.file || response.data]
       });
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (error) {
-      console.error('Upload error:', error);
-      alert('Failed to upload file');
+      console.error('❌ Upload error:', error);
+      alert(error.response?.data?.message || 'Failed to upload file');
     }
   };
 

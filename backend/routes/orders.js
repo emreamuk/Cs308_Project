@@ -4,127 +4,138 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
-const auth = require('../middleware/auth');
-const { checkRole } = require('../middleware/roleAuth');
-const { sendOrderConfirmation } = require('../services/emailService');
+const { encryptCreditCard, decryptCreditCard, maskCreditCard } = require('../utils/encryption');
 
-// Create new order
+// ✅ Import auth middleware
+let auth;
+try {
+  const authModule = require('../middleware/auth');
+  auth = authModule.auth || authModule.default || authModule;
+} catch (error) {
+  console.error('Auth middleware not found:', error);
+  auth = (req, res, next) => {
+    const token = req.header('x-auth-token') || req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'No token, authorization denied' });
+    }
+    
+    try {
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      req.user = decoded;
+      next();
+    } catch (err) {
+      res.status(401).json({ message: 'Token is not valid' });
+    }
+  };
+}
+
+// Create a new order
 router.post('/', auth, async (req, res) => {
   try {
-    const { orderItems, totalPrice, deliveryAddress } = req.body;
+    const { orderItems, totalPrice, deliveryAddress, paymentInfo } = req.body;
 
-    // Validate input
+    // Validate required fields
     if (!orderItems || orderItems.length === 0) {
-      return res.status(400).json({ message: 'No order items provided' });
+      return res.status(400).json({ message: 'Order items are required' });
     }
 
-    if (!deliveryAddress) {
-      return res.status(400).json({ message: 'Delivery address is required' });
+    if (!paymentInfo || !paymentInfo.creditCardNumber || !paymentInfo.cardHolderName || !paymentInfo.expiryDate) {
+      return res.status(400).json({ message: 'Payment information is required' });
     }
 
-    // Check stock and prepare order items
-    const validatedItems = [];
-    
-    for (let item of orderItems) {
+    // Validate credit card number format (basic validation)
+    const cleanCardNumber = paymentInfo.creditCardNumber.replace(/[\s-]/g, '');
+    if (!/^\d{13,19}$/.test(cleanCardNumber)) {
+      return res.status(400).json({ message: 'Invalid credit card number' });
+    }
+
+    // ✅ Encrypt credit card number before saving
+    const encryptedCardNumber = encryptCreditCard(paymentInfo.creditCardNumber);
+
+    // Verify products exist and have enough stock
+    for (const item of orderItems) {
       const product = await Product.findById(item.product);
-      
       if (!product) {
-        return res.status(404).json({ 
-          message: `Product not found: ${item.product}` 
-        });
+        return res.status(404).json({ message: `Product ${item.product} not found` });
       }
-
       if (product.quantityInStock < item.quantity) {
         return res.status(400).json({ 
-          message: `Not enough stock for ${product.name}. Only ${product.quantityInStock} available.` 
+          message: `Insufficient stock for ${product.name}. Available: ${product.quantityInStock}` 
         });
       }
-
-      // Reduce stock
-      product.quantityInStock -= item.quantity;
-      await product.save();
-
-      // Add to validated items
-      validatedItems.push({
-        product: product._id,
-        name: product.name,
-        quantity: item.quantity,
-        price: item.price
-      });
     }
 
-    // Create order
+    // Create order with encrypted credit card
     const order = new Order({
       user: req.user.id,
-      orderItems: validatedItems,
+      orderItems,
       totalPrice,
       deliveryAddress,
-      status: 'processing'
+      paymentInfo: {
+        creditCardNumber: encryptedCardNumber, // ✅ Stored encrypted
+        cardHolderName: paymentInfo.cardHolderName,
+        expiryDate: paymentInfo.expiryDate
+      }
     });
 
     await order.save();
 
-    // SEND EMAIL NOTIFICATION
-    try {
-      const user = await User.findById(req.user.id);
-      
-      if (user && user.email) {
-        await sendOrderConfirmation(user.email, {
-          orderId: order._id,
-          orderItems: validatedItems,
-          totalPrice,
-          deliveryAddress,
-          createdAt: order.createdAt
-        });
-        
-        console.log(`📧 Order confirmation email sent to ${user.email}`);
-      }
-    } catch (emailError) {
-      // Don't fail the order if email fails
-      console.error('Email sending failed, but order was created:', emailError);
+    // Update product stock
+    for (const item of orderItems) {
+      await Product.findByIdAndUpdate(
+        item.product,
+        { $inc: { quantityInStock: -item.quantity } }
+      );
     }
 
-    res.status(201).json({
-      message: 'Order placed successfully. Confirmation email sent!',
-      order
-    });
+    // Populate product details
+    await order.populate('orderItems.product');
 
+    res.status(201).json({ 
+      message: 'Order created successfully', 
+      order 
+    });
   } catch (error) {
     console.error('Create order error:', error);
-    res.status(500).json({ message: 'Server error while creating order' });
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
   }
 });
 
-// Get user's orders
+// Get user's orders (with masked credit card)
 router.get('/my-orders', auth, async (req, res) => {
   try {
     const orders = await Order.find({ user: req.user.id })
       .populate('orderItems.product')
       .sort({ createdAt: -1 });
 
-    res.json(orders);
+    // ✅ Mask credit card numbers before sending to client
+    const ordersWithMaskedCards = orders.map(order => {
+      const orderObj = order.toObject();
+      
+      if (orderObj.paymentInfo && orderObj.paymentInfo.creditCardNumber) {
+        // Decrypt and then mask
+        const decrypted = decryptCreditCard(orderObj.paymentInfo.creditCardNumber);
+        orderObj.paymentInfo.creditCardNumber = maskCreditCard(decrypted);
+      }
+      
+      return orderObj;
+    });
+
+    res.json({ orders: ordersWithMaskedCards });
   } catch (error) {
     console.error('Get orders error:', error);
-    res.status(500).json({ message: 'Server error while fetching orders' });
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
   }
 });
 
-// Get all orders (for product manager) - ADD THIS NEW ROUTE
-router.get('/all', auth, checkRole('product_manager'), async (req, res) => {
-  try {
-    const orders = await Order.find()
-      .populate('orderItems.product')
-      .populate('user', 'name email')
-      .sort({ createdAt: -1 });
-
-    res.json(orders);
-  } catch (error) {
-    console.error('Get all orders error:', error);
-    res.status(500).json({ message: 'Server error while fetching orders' });
-  }
-});
-
-// Get single order
+// Get single order by ID (with masked credit card)
 router.get('/:id', auth, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
@@ -135,24 +146,79 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Check if order belongs to user (or user is admin)
+    // Verify user owns this order
     if (order.user._id.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized to view this order' });
     }
 
-    res.json(order);
+    const orderObj = order.toObject();
+    
+    // ✅ Mask credit card number
+    if (orderObj.paymentInfo && orderObj.paymentInfo.creditCardNumber) {
+      const decrypted = decryptCreditCard(orderObj.paymentInfo.creditCardNumber);
+      orderObj.paymentInfo.creditCardNumber = maskCreditCard(decrypted);
+    }
+
+    res.json({ order: orderObj });
   } catch (error) {
     console.error('Get order error:', error);
-    res.status(500).json({ message: 'Server error while fetching order' });
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
   }
 });
 
-// Update order status (for product manager/admin)
-router.patch('/:id/status', auth, async (req, res) => {
+// Admin/Product Manager: Get all orders
+router.get('/', auth, async (req, res) => {
   try {
+    // Check if user is admin or product_manager
+    const user = await User.findById(req.user.id);
+    if (!user || (user.role !== 'product_manager' && user.role !== 'admin')) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const orders = await Order.find()
+      .populate('orderItems.product')
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+
+    // ✅ Mask credit card numbers
+    const ordersWithMaskedCards = orders.map(order => {
+      const orderObj = order.toObject();
+      
+      if (orderObj.paymentInfo && orderObj.paymentInfo.creditCardNumber) {
+        const decrypted = decryptCreditCard(orderObj.paymentInfo.creditCardNumber);
+        orderObj.paymentInfo.creditCardNumber = maskCreditCard(decrypted);
+      }
+      
+      return orderObj;
+    });
+
+    res.json({ orders: ordersWithMaskedCards });
+  } catch (error) {
+    console.error('Get all orders error:', error);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+});
+
+// Update order status
+router.put('/:id/status', auth, async (req, res) => {
+  try {
+    // Check if user is product_manager or admin
+    const user = await User.findById(req.user.id);
+    if (!user || (user.role !== 'product_manager' && user.role !== 'admin')) {
+      return res.status(403).json({ message: 'Access denied. Only product managers can update order status.' });
+    }
+
     const { status } = req.body;
 
-    if (!['processing', 'in-transit', 'delivered', 'cancelled'].includes(status)) {
+    // Validate status
+    const validStatuses = ['processing', 'in-transit', 'delivered', 'cancelled'];
+    if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
 
@@ -160,63 +226,22 @@ router.patch('/:id/status', auth, async (req, res) => {
       req.params.id,
       { status },
       { new: true }
-    );
+    ).populate('orderItems.product');
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    res.json({
-      message: 'Order status updated',
-      order
+    res.json({ 
+      message: 'Order status updated', 
+      order 
     });
   } catch (error) {
-    console.error('Update order error:', error);
-    res.status(500).json({ message: 'Server error while updating order' });
-  }
-});
-
-// Cancel order (only if status is 'processing')
-router.post('/:id/cancel', auth, async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
-
-    // Check if order belongs to user
-    if (order.user.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-
-    // Can only cancel if processing
-    if (order.status !== 'processing') {
-      return res.status(400).json({ 
-        message: 'Can only cancel orders that are in processing status' 
-      });
-    }
-
-    // Restore stock
-    for (let item of order.orderItems) {
-      const product = await Product.findById(item.product);
-      if (product) {
-        product.quantityInStock += item.quantity;
-        await product.save();
-      }
-    }
-
-    // Update order status
-    order.status = 'cancelled';
-    await order.save();
-
-    res.json({
-      message: 'Order cancelled successfully',
-      order
+    console.error('Update order status error:', error);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
     });
-  } catch (error) {
-    console.error('Cancel order error:', error);
-    res.status(500).json({ message: 'Server error while cancelling order' });
   }
 });
 

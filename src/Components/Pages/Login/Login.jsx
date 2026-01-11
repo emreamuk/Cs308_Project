@@ -18,10 +18,10 @@ const Login = () => {
 
     try {
       const response = await API.post('/auth/login', { email, password });
-      
-      // Save token and user info
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+
+      // Save token and user info to sessionStorage (per-tab storage)
+      sessionStorage.setItem('token', response.data.token);
+      sessionStorage.setItem('user', JSON.stringify(response.data.user));
       
       // Redirect to home page
       navigate('/');
