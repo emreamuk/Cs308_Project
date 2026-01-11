@@ -9,14 +9,16 @@ const Invoice = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { clearCart } = useContext(CartContext);
-  const { orderData, paymentDetails } = location.state || {};
+  const { orderData, paymentDetails, invoice } = location.state || {};
   
   // ✅ ADD THIS - Prevent duplicate submissions
   const orderSubmitted = useRef(false);
 
   useEffect(() => {
-    // If invoice page was reached after Checkout already created the order on the server,
-    // Checkout attaches `orderId` to `orderData`. In that case, skip re-submitting the order.
+    // If we reached here from Checkout with `orderData`, submit order if needed.
+    // If we reached here with a server `invoice`, skip submission entirely.
+    if (invoice) return;
+
     if (!orderData) return;
 
     if (orderSubmitted.current) return;
@@ -24,7 +26,6 @@ const Invoice = () => {
     if (orderData.orderId) {
       console.log('Order already created on server (orderId present), skipping submission.');
       orderSubmitted.current = true;
-      // Ensure cart is cleared client-side if not already
       try { clearCart(); } catch (e) { /* ignore */ }
       return;
     }
@@ -71,7 +72,8 @@ const Invoice = () => {
     window.print();
   };
 
-  if (!orderData) {
+  // Prefer server-provided invoice if available
+  if (!orderData && !invoice) {
     return (
       <div className="invoice-page">
         <h2>No invoice data found</h2>
@@ -80,8 +82,12 @@ const Invoice = () => {
     );
   }
 
-  const invoiceNumber = 'INV-' + Date.now().toString().slice(-8);
-  const invoiceDate = new Date().toLocaleDateString('en-US', {
+  const invoiceNumber = invoice ? invoice.invoiceNumber : ('INV-' + Date.now().toString().slice(-8));
+  const invoiceDate = invoice ? new Date(invoice.invoiceDate).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }) : new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
@@ -108,7 +114,7 @@ const Invoice = () => {
 
         <div className="customer-info">
           <h3>Deliver To:</h3>
-          <p>{orderData.address}</p>
+          <p>{ invoice ? (invoice.customerInfo?.address || invoice.customerInfo?.email) : orderData.address }</p>
         </div>
 
         <table className="invoice-table">
@@ -121,12 +127,12 @@ const Invoice = () => {
             </tr>
           </thead>
           <tbody>
-            {orderData.items.map((item, index) => (
+            {(invoice ? invoice.items : orderData.items).map((item, index) => (
               <tr key={index}>
-                <td>{item.name}</td>
-                <td>{item.qty}</td>
-                <td>${item.price.toFixed(2)}</td>
-                <td>${(item.price * item.qty).toFixed(2)}</td>
+                <td>{item.name || item.product?.name}</td>
+                <td>{item.quantity || item.qty}</td>
+                <td>${(item.price || item.product?.price || 0).toFixed(2)}</td>
+                <td>${((item.total) || (item.quantity || item.qty) * (item.price || item.product?.price || 0)).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
@@ -135,7 +141,7 @@ const Invoice = () => {
         <div className="invoice-total">
           <div className="total-row">
             <span>Subtotal:</span>
-            <span>${orderData.total.toFixed(2)}</span>
+            <span>${ (invoice ? invoice.subtotal : orderData.total).toFixed(2) }</span>
           </div>
           <div className="total-row">
             <span>Shipping:</span>
@@ -143,13 +149,21 @@ const Invoice = () => {
           </div>
           <div className="total-row grand-total">
             <span><strong>Total Paid:</strong></span>
-            <span><strong>${orderData.total.toFixed(2)}</strong></span>
+            <span><strong>${ (invoice ? invoice.totalAmount : orderData.total).toFixed(2) }</strong></span>
           </div>
         </div>
 
         <div className="payment-method">
-          <p><strong>Payment Method:</strong> Credit Card ({paymentDetails?.cardNumber})</p>
-          <p><strong>Cardholder:</strong> {paymentDetails?.cardName}</p>
+          {invoice ? (
+            <>
+              <p><strong>Invoice To:</strong> {invoice.customerInfo?.name} ({invoice.customerInfo?.email})</p>
+            </>
+          ) : (
+            <>
+              <p><strong>Payment Method:</strong> Credit Card ({paymentDetails?.cardNumber})</p>
+              <p><strong>Cardholder:</strong> {paymentDetails?.cardName}</p>
+            </>
+          )}
         </div>
 
         <div className="invoice-footer">

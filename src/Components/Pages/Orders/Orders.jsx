@@ -160,6 +160,24 @@ const Orders = () => {
     }
   };
 
+  const handleViewInvoice = async (orderId) => {
+    try {
+      const resp = await API.get(`/invoices/order/${orderId}`);
+      const invoice = resp.data;
+      // Navigate to invoice page and pass invoice object
+      navigate('/invoice', { state: { invoice } });
+    } catch (error) {
+      if (error.response?.status === 404) {
+        alert('Invoice not found for this order');
+      } else if (error.response?.status === 403) {
+        alert('You are not authorized to view this invoice');
+      } else {
+        console.error('Fetch invoice error:', error);
+        alert('Failed to load invoice');
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="orders-page">
@@ -252,17 +270,24 @@ const Orders = () => {
                   </div>
                 </div>
 
-                {/* Order Actions - Cancel Button */}
-                {canCancelOrder(order) && (
-                  <div className="order-actions">
+                {/* Order Actions - Cancel Button + Invoice */}
+                <div className="order-actions">
+                  {canCancelOrder(order) && (
                     <button
                       className="cancel-order-btn"
                       onClick={() => handleCancelOrder(order._id)}
                     >
                       Cancel Order
                     </button>
-                  </div>
-                )}
+                  )}
+
+                  <button
+                    className="view-invoice-btn"
+                    onClick={() => handleViewInvoice(order._id)}
+                  >
+                    View / Download Invoice
+                  </button>
+                </div>
               </div>
             ))}
           </div>

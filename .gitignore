@@ -24,3 +24,11 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Ignore user/IDE and large upload artifacts
+.claude/
+Course Project.pdf
+
+# Backend artifacts
+backend/nul
+backend/uploads/
