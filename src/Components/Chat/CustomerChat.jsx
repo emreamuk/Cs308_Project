@@ -51,7 +51,7 @@ const CustomerChat = () => {
       socketRef.current.disconnect();
     }
 
-    socketRef.current = io('http://localhost:5000/chat', {
+    socketRef.current = io('http://localhost:5001/chat', {
       transports: ['websocket']
     });
 
@@ -81,7 +81,20 @@ const CustomerChat = () => {
           return prev;
         }
         
-        return [...prev, data.message];
+        const next = [...prev, data.message];
+
+        // Update cached chat in sessionStorage so UI persists across reloads
+        try {
+          const cached = JSON.parse(sessionStorage.getItem('chat') || 'null');
+          if (cached && cached._id === data.chatId) {
+            cached.messages = next;
+            sessionStorage.setItem('chat', JSON.stringify(cached));
+          }
+        } catch (err) {
+          // ignore
+        }
+
+        return next;
       });
     });
 
@@ -110,6 +123,41 @@ const CustomerChat = () => {
 
   const checkForExistingChat = useCallback(async () => {
     try {
+      // If we have a cached chat from previous session, show it immediately
+      const cached = sessionStorage.getItem('chat');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setChat(parsed);
+        setMessages(parsed.messages || []);
+        setChatStarted(true);
+        if (parsed.agent) setAgentName(parsed.agent.name);
+        // Connect socket in background
+        connectSocket(parsed._id);
+        // Still verify with server to refresh state
+      }
+
+      // If user is logged in, ask server for any active chat linked to their account
+      const userData = sessionStorage.getItem('user');
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          if (user?.id) {
+            const responseByUser = await API.get(`/chat/my-chat?userId=${user.id}`);
+            if (responseByUser.data && responseByUser.data.chat) {
+              setChat(responseByUser.data.chat);
+              setMessages(responseByUser.data.chat.messages || []);
+              setChatStarted(true);
+              if (responseByUser.data.chat.agent) setAgentName(responseByUser.data.chat.agent.name);
+              try { sessionStorage.setItem('chat', JSON.stringify(responseByUser.data.chat)); } catch (err) {}
+              connectSocket(responseByUser.data.chat._id);
+              return; // we've resumed the account chat, no need to check guest id
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to parse user from sessionStorage', err);
+        }
+      }
+
       const guestSessionId = sessionStorage.getItem('guestSessionId') || generateSessionId();
       const response = await API.get(`/chat/my-chat?guestSessionId=${guestSessionId}`);
       
@@ -117,17 +165,24 @@ const CustomerChat = () => {
         setChat(response.data.chat);
         setMessages(response.data.chat.messages || []);
         setChatStarted(true);
-        
         if (response.data.chat.agent) {
           setAgentName(response.data.chat.agent.name);
         }
-        
-        // Connect socket
+
+        // Cache chat for persistence
+        try { sessionStorage.setItem('chat', JSON.stringify(response.data.chat)); } catch (err) {}
+
+        // Connect socket (if not already connected to same chat)
         connectSocket(response.data.chat._id);
       }
     } catch (error) {
       // No active chat found - that's fine
-      console.log('No existing chat');
+      console.log('No existing chat', error?.response?.data?.message || error.message);
+      // If cached chat exists but server says none, clear cache
+      try {
+        const cached = JSON.parse(sessionStorage.getItem('chat') || 'null');
+        if (cached) sessionStorage.removeItem('chat');
+      } catch (err) {}
     }
   }, [connectSocket]);
 
@@ -176,6 +231,9 @@ const CustomerChat = () => {
       
       // Connect socket
       connectSocket(response.data.chat._id);
+      // Cache chat so it persists across reloads
+      try { sessionStorage.setItem('chat', JSON.stringify(response.data.chat)); } catch (err) {}
+
     } catch (error) {
       console.error('Start chat error:', error);
       alert(error.response?.data?.message || 'Failed to start chat');
@@ -353,9 +411,9 @@ const CustomerChat = () => {
                       {msg.attachments && msg.attachments.map((att, i) => (
                         <div key={i} className="message-attachment">
                           {att.type === 'image' ? (
-                            <img src={`http://localhost:5000${att.url}`} alt={att.filename} />
+                            <img src={`http://localhost:5001${att.url}`} alt={att.filename} />
                           ) : (
-                            <a href={`http://localhost:5000${att.url}`} target="_blank" rel="noopener noreferrer">
+                            <a href={`http://localhost:5001${att.url}`} target="_blank" rel="noopener noreferrer">
                               📎 {att.filename}
                             </a>
                           )}

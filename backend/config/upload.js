@@ -17,8 +17,13 @@ if (!fs.existsSync(chatAttachmentsDir)) {
 // Configure storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    // Use chat-attachments folder for chat uploads
-    if (req.path && req.path.includes('/chat/')) {
+    // Use chat-attachments folder for chat uploads. Check baseUrl/originalUrl because
+    // when router is mounted (e.g., at /api/chat) req.path may be just '/upload'.
+    const isChatRoute = (req.baseUrl && req.baseUrl.includes('/chat')) ||
+                        (req.originalUrl && req.originalUrl.includes('/chat')) ||
+                        (req.path && req.path.includes('/chat'));
+
+    if (isChatRoute) {
       cb(null, chatAttachmentsDir);
     } else {
       cb(null, uploadDir);
@@ -27,7 +32,10 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     // Generate unique filename: timestamp-randomstring-originalname
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const prefix = req.path && req.path.includes('/chat/') ? 'chat-' : '';
+    const isChatRoute = (req.baseUrl && req.baseUrl.includes('/chat')) ||
+                        (req.originalUrl && req.originalUrl.includes('/chat')) ||
+                        (req.path && req.path.includes('/chat'));
+    const prefix = isChatRoute ? 'chat-' : '';
     cb(null, prefix + uniqueSuffix + '-' + file.originalname);
   }
 });
@@ -54,4 +62,23 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
+// Dedicated uploader for chat attachments to ensure correct destination
+const chatStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, chatAttachmentsDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'chat-' + uniqueSuffix + '-' + file.originalname);
+  }
+});
+
+const chatUpload = multer({
+  storage: chatStorage,
+  limits: {
+    fileSize: 10 * 1024 * 1024
+  },
+  fileFilter: fileFilter
+});
 module.exports = upload;
+module.exports.chatUpload = chatUpload;

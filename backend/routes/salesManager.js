@@ -315,6 +315,19 @@ router.patch('/refunds/:id/approve', auth, checkRole('sales_manager'), async (re
       });
     }
 
+    // Check 30-day window from delivery
+    const deliveryDate = refund.order.deliveryCompletedAt;
+    if (!deliveryDate) {
+      return res.status(400).json({ message: 'Delivery date not found' });
+    }
+
+    const daysSinceDelivery = Math.floor((Date.now() - deliveryDate) / (1000 * 60 * 60 * 24));
+    if (daysSinceDelivery > 30) {
+      return res.status(400).json({
+        message: 'Cannot approve refund. The 30-day refund window has expired.'
+      });
+    }
+
     // Update refund status
     refund.status = 'approved';
     refund.reviewedBy = req.user.id;

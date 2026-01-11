@@ -369,7 +369,9 @@ router.post('/:chatId/close', auth, isSupportAgent, async (req, res) => {
 // ==================== FILE UPLOAD ====================
 
 // Upload chat attachment
-router.post('/upload', upload.single('file'), async (req, res) => {
+// Use dedicated chatUpload to ensure files are stored in /uploads/chat-attachments
+const { chatUpload } = require('../config/upload');
+router.post('/upload', chatUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });

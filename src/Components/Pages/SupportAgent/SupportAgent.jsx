@@ -51,7 +51,7 @@ const SupportAgent = () => {
       socketRef.current.disconnect();
     }
 
-    socketRef.current = io('http://localhost:5000/chat', {
+    socketRef.current = io('http://localhost:5001/chat', {
       transports: ['websocket']
     });
 
@@ -574,9 +574,9 @@ const SupportAgent = () => {
                         {msg.attachments && msg.attachments.map((att, i) => (
                           <div key={i} className="message-attachment">
                             {att.type === 'image' ? (
-                              <img src={`http://localhost:5000${att.url}`} alt={att.filename} />
+                              <img src={`http://localhost:5001${att.url}`} alt={att.filename} />
                             ) : (
-                              <a href={`http://localhost:5000${att.url}`} target="_blank" rel="noopener noreferrer">
+                              <a href={`http://localhost:5001${att.url}`} target="_blank" rel="noopener noreferrer">
                                 📎 {att.filename}
                               </a>
                             )}

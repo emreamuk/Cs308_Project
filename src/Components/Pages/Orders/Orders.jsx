@@ -12,6 +12,7 @@ const Orders = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [refundQuantity, setRefundQuantity] = useState(1);
   const [refundReason, setRefundReason] = useState('');
+  const [submittingRefund, setSubmittingRefund] = useState(false);
   const navigate = useNavigate();
 
   const fetchOrders = useCallback(async () => {
@@ -82,6 +83,19 @@ const Orders = () => {
       return;
     }
 
+    if (submittingRefund) {
+      return; // Prevent multiple submissions
+    }
+
+    // Check 30-day window before submission
+    if (!canRequestRefund(selectedOrder)) {
+      alert('This order is no longer eligible for refund. The 30-day window has expired.');
+      setShowRefundModal(false);
+      return;
+    }
+
+    setSubmittingRefund(true);
+
     try {
       await API.post('/refunds/request', {
         orderId: selectedOrder._id,
@@ -95,6 +109,8 @@ const Orders = () => {
       fetchOrders();
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to submit refund request');
+    } finally {
+      setSubmittingRefund(false);
     }
   };
 
@@ -255,10 +271,18 @@ const Orders = () => {
                 </div>
 
                 <div className="modal-actions">
-                  <button className="btn-primary" onClick={submitRefund}>
-                    Submit Refund Request
+                  <button
+                    className="btn-primary"
+                    onClick={submitRefund}
+                    disabled={submittingRefund}
+                  >
+                    {submittingRefund ? 'Submitting...' : 'Submit Refund Request'}
                   </button>
-                  <button className="btn-secondary" onClick={() => setShowRefundModal(false)}>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => setShowRefundModal(false)}
+                    disabled={submittingRefund}
+                  >
                     Cancel
                   </button>
                 </div>

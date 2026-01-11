@@ -212,6 +212,15 @@ function SalesManager() {
     }
   };
 
+  // Check if refund is within 30-day window
+  const isRefundExpired = (refund) => {
+    if (!refund.order?.deliveryCompletedAt) {
+      return true; // No delivery date = expired
+    }
+    const daysSinceDelivery = Math.floor((Date.now() - new Date(refund.order.deliveryCompletedAt)) / (1000 * 60 * 60 * 24));
+    return daysSinceDelivery > 30;
+  };
+
   return (
     <div className="sales-manager-claude">
       <h1>Sales Manager Dashboard</h1>
@@ -505,35 +514,52 @@ function SalesManager() {
                 </div>
 
                 {refund.status === 'pending' && (
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button
-                      onClick={() => approveRefund(refund._id)}
-                      style={{
-                        padding: '8px 16px',
-                        background: '#4caf50',
-                        color: 'white',
-                        border: 'none',
+                  <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+                    {isRefundExpired(refund) && (
+                      <div style={{
+                        padding: '10px',
+                        background: '#fff3cd',
+                        border: '1px solid #ffc107',
                         borderRadius: '5px',
-                        cursor: 'pointer',
+                        color: '#856404',
+                        fontSize: '13px',
                         fontWeight: '600'
-                      }}
-                    >
-                      Approve Refund
-                    </button>
-                    <button
-                      onClick={() => rejectRefund(refund._id)}
-                      style={{
-                        padding: '8px 16px',
-                        background: '#f44336',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                        fontWeight: '600'
-                      }}
-                    >
-                      Reject Refund
-                    </button>
+                      }}>
+                        ⚠️ This refund is outside the 30-day window and cannot be approved
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        onClick={() => approveRefund(refund._id)}
+                        disabled={isRefundExpired(refund)}
+                        style={{
+                          padding: '8px 16px',
+                          background: isRefundExpired(refund) ? '#ccc' : '#4caf50',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: isRefundExpired(refund) ? 'not-allowed' : 'pointer',
+                          fontWeight: '600',
+                          opacity: isRefundExpired(refund) ? 0.6 : 1
+                        }}
+                      >
+                        Approve Refund
+                      </button>
+                      <button
+                        onClick={() => rejectRefund(refund._id)}
+                        style={{
+                          padding: '8px 16px',
+                          background: '#f44336',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer',
+                          fontWeight: '600'
+                        }}
+                      >
+                        Reject Refund
+                      </button>
+                    </div>
                   </div>
                 )}
 

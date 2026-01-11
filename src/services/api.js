@@ -2,6 +2,7 @@
 import axios from 'axios';
 
 const API = axios.create({
+  // Revert to backend port 5001 (previous configuration)
   baseURL: 'http://localhost:5001/api'
 });
 
