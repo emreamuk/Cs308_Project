@@ -359,3 +359,36 @@
 .modal-actions .btn-secondary:hover {
   background: #e0e0e0;
 }
+/* Order Actions Section */
+.order-actions {
+  padding: 15px 20px;
+  background: #fff3e0;
+  border-top: 1px solid #ffe0b2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Cancel Order Button */
+.cancel-order-btn {
+  padding: 12px 30px;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.cancel-order-btn:hover {
+  background: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+}
+
+.cancel-order-btn:active {
+  transform: translateY(0);
+}

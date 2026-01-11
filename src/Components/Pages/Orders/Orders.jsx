@@ -136,6 +136,30 @@ const Orders = () => {
     return daysSinceDelivery <= 30;
   };
 
+  const canCancelOrder = (order) => {
+    // CS 308 Requirement 14: Orders can only be cancelled if status is "processing"
+    return order.status === 'processing';
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    const confirmCancel = window.confirm(
+      'Are you sure you want to cancel this order? This action cannot be undone.'
+    );
+
+    if (!confirmCancel) {
+      return;
+    }
+
+    try {
+      await API.put(`/orders/${orderId}/cancel`);
+      alert('Order cancelled successfully!');
+      fetchOrders(); // Reload orders
+    } catch (error) {
+      console.error('Cancel order error:', error);
+      alert(error.response?.data?.message || 'Failed to cancel order');
+    }
+  };
+
   if (loading) {
     return (
       <div className="orders-page">
@@ -227,6 +251,18 @@ const Orders = () => {
                     <span className="total-amount">${order.totalPrice?.toFixed(2)}</span>
                   </div>
                 </div>
+
+                {/* Order Actions - Cancel Button */}
+                {canCancelOrder(order) && (
+                  <div className="order-actions">
+                    <button
+                      className="cancel-order-btn"
+                      onClick={() => handleCancelOrder(order._id)}
+                    >
+                      Cancel Order
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

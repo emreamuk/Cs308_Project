@@ -4,9 +4,8 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
-const Invoice = require('../models/Invoice');
-const { sendOrderConfirmation } = require('../services/emailService');
 const { encryptCreditCard, decryptCreditCard, maskCreditCard } = require('../utils/encryption');
+const { sendOrderConfirmation } = require('../services/emailService');
 
 // ✅ Import auth middleware
 let auth;
@@ -32,7 +31,8 @@ try {
   };
 }
 
-// Create a new order
+// ==================== CREATE ORDER ====================
+// POST /orders
 router.post('/', auth, async (req, res) => {
   try {
     const { orderItems, totalPrice, deliveryAddress, paymentInfo } = req.body;
@@ -94,82 +94,39 @@ router.post('/', auth, async (req, res) => {
     // Populate product details
     await order.populate('orderItems.product');
 
-    // Create invoice for this order
+    // ✅ Send confirmation email
     try {
-      const invoiceItems = order.orderItems.map(item => ({
-        product: item.product._id,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        total: item.quantity * item.price
-      }));
-
-      const subtotal = invoiceItems.reduce((sum, it) => sum + it.total, 0);
-      const tax = subtotal * 0.18; // 18% VAT
-      const totalAmount = subtotal + tax;
-
       const user = await User.findById(req.user.id);
+      if (user && user.email) {
+        const emailData = {
+          orderId: order._id,
+          orderItems: order.orderItems.map(item => ({
+            name: item.product?.name || item.name,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          totalPrice: order.totalPrice,
+          deliveryAddress: order.deliveryAddress,
+          createdAt: order.createdAt
+        };
 
-      const invoiceNumber = `INV-${order._id.toString().slice(-8)}`;
-
-      const invoice = new Invoice({
-        invoiceNumber,
-        order: order._id,
-        customer: req.user.id,
-        customerInfo: {
-          name: user ? user.name : '',
-          email: user ? user.email : '',
-          address: order.deliveryAddress || '',
-          taxID: user && user.taxID ? user.taxID : ''
-        },
-        items: invoiceItems,
-        subtotal,
-        discount: 0,
-        tax,
-        totalAmount,
-        invoiceDate: order.createdAt,
-        status: 'paid'
-      });
-
-      await invoice.save();
-
-      // Send confirmation email asynchronously; do not block response on email success
-      (async () => {
-        try {
-          const user = await User.findById(req.user.id);
-          if (user && user.email) {
-            await sendOrderConfirmation(user.email, {
-              orderId: order._id,
-              orderItems: order.orderItems.map(it => ({
-                name: it.name,
-                quantity: it.quantity,
-                price: it.price
-              })),
-              totalPrice: totalAmount,
-              deliveryAddress: order.deliveryAddress,
-              createdAt: order.createdAt
-            });
-            console.log(`Invoice email queued for ${user.email}`);
-          }
-        } catch (emailErr) {
-          console.error('Error sending order confirmation email:', emailErr);
+        const emailResult = await sendOrderConfirmation(user.email, emailData);
+        
+        if (emailResult.success) {
+          console.log('✅ Order confirmation email sent to:', user.email);
+        } else {
+          console.error('⚠️ Failed to send email, but order was created');
         }
-      })();
-
-      res.status(201).json({ 
-        message: 'Order created successfully', 
-        order,
-        invoice
-      });
-    } catch (invErr) {
-      console.error('Invoice creation error:', invErr);
-      // Still return order even if invoice creation fails
-      res.status(201).json({ 
-        message: 'Order created successfully (invoice creation failed)', 
-        order,
-        invoiceError: invErr.message
-      });
+      }
+    } catch (emailError) {
+      // Don't fail the order if email fails
+      console.error('Email error (order still created):', emailError);
     }
+
+    res.status(201).json({ 
+      message: 'Order created successfully', 
+      order 
+    });
   } catch (error) {
     console.error('Create order error:', error);
     res.status(500).json({ 
@@ -179,7 +136,8 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// Get user's orders (with masked credit card)
+// ==================== GET USER'S ORDERS ====================
+// GET /orders/my-orders
 router.get('/my-orders', auth, async (req, res) => {
   try {
     const orders = await Order.find({ user: req.user.id })
@@ -209,7 +167,8 @@ router.get('/my-orders', auth, async (req, res) => {
   }
 });
 
-// Get single order by ID (with masked credit card)
+// ==================== GET SINGLE ORDER BY ID ====================
+// GET /orders/:id
 router.get('/:id', auth, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
@@ -220,8 +179,12 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Verify user owns this order
-    if (order.user._id.toString() !== req.user.id) {
+    // Verify user owns this order (or is admin/product_manager)
+    const user = await User.findById(req.user.id);
+    const isOwner = order.user._id.toString() === req.user.id;
+    const isAuthorized = user.role === 'admin' || user.role === 'product_manager';
+
+    if (!isOwner && !isAuthorized) {
       return res.status(403).json({ message: 'Not authorized to view this order' });
     }
 
@@ -243,7 +206,8 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// Admin/Product Manager: Get all orders
+// ==================== GET ALL ORDERS (ADMIN/PRODUCT MANAGER) ====================
+// GET /orders
 router.get('/', auth, async (req, res) => {
   try {
     // Check if user is admin or product_manager
@@ -279,7 +243,8 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// Update order status
+// ==================== UPDATE ORDER STATUS (PRODUCT MANAGER) ====================
+// PUT /orders/:id/status
 router.put('/:id/status', auth, async (req, res) => {
   try {
     // Check if user is product_manager or admin
@@ -296,15 +261,22 @@ router.put('/:id/status', auth, async (req, res) => {
       return res.status(400).json({ message: 'Invalid status' });
     }
 
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    ).populate('orderItems.product');
+    const order = await Order.findById(req.params.id)
+      .populate('orderItems.product');
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
+
+    // Update status
+    order.status = status;
+
+    // ✅ If order is being marked as delivered, set deliveryCompletedAt timestamp
+    if (status === 'delivered' && !order.deliveryCompletedAt) {
+      order.deliveryCompletedAt = new Date();
+    }
+
+    await order.save();
 
     res.json({ 
       message: 'Order status updated', 
@@ -312,6 +284,57 @@ router.put('/:id/status', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Update order status error:', error);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+});
+
+// ==================== CANCEL ORDER ====================
+// PUT /orders/:id/cancel
+// CS 308 Requirement 14: Orders can only be cancelled if status is "processing"
+router.put('/:id/cancel', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate('orderItems.product');
+    
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    
+    // Verify user owns this order
+    if (order.user.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized to cancel this order' });
+    }
+    
+    // ✅ CS 308 Requirement 14: Validate status - ONLY processing orders can be cancelled
+    if (order.status !== 'processing') {
+      return res.status(400).json({ 
+        message: `Cannot cancel order. Order is already ${order.status}. Only orders with "processing" status can be cancelled.`,
+        currentStatus: order.status
+      });
+    }
+    
+    // Update status to cancelled
+    order.status = 'cancelled';
+    await order.save();
+    
+    // Restore stock (add products back to inventory)
+    for (const item of order.orderItems) {
+      await Product.findByIdAndUpdate(
+        item.product._id,
+        { $inc: { quantityInStock: item.quantity } }
+      );
+      console.log(`✅ Restored ${item.quantity} units of ${item.product.name} to stock`);
+    }
+    
+    res.json({ 
+      message: 'Order cancelled successfully. Stock has been restored.',
+      order 
+    });
+  } catch (error) {
+    console.error('Cancel order error:', error);
     res.status(500).json({ 
       message: 'Server error', 
       error: error.message 
