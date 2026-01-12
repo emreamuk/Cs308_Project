@@ -1,6 +1,8 @@
 // backend/routes/chat.js
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
 const Chat = require('../models/Chat');
 const User = require('../models/User');
 const Order = require('../models/Order');
@@ -259,12 +261,14 @@ router.get('/my-chat', async (req, res) => {
 // Get queue of waiting chats
 router.get('/queue', auth, isSupportAgent, async (req, res) => {
   try {
-    const waitingChats = await Chat.find({ 
-      status: 'waiting' 
+    const waitingChats = await Chat.find({
+      status: 'waiting'
     })
+    .populate('customer', 'name email')
     .sort({ createdAt: 1 })
-    .select('customer messages createdAt')
-    .limit(20);
+    .select('customer messages createdAt status')
+    .limit(20)
+    .lean();
 
     res.json({ chats: waitingChats });
   } catch (error) {
@@ -280,7 +284,10 @@ router.get('/my-active-chats', auth, isSupportAgent, async (req, res) => {
       agent: req.user.id,
       status: 'active'
     })
-    .sort({ updatedAt: -1 });
+    .populate('customer', 'name email')
+    .populate('agent', 'name email')
+    .sort({ updatedAt: -1 })
+    .lean();
 
     res.json({ chats: activeChats });
   } catch (error) {
@@ -316,10 +323,11 @@ router.post('/:chatId/claim', auth, isSupportAgent, async (req, res) => {
 
     await chat.save();
 
-    // Populate agent info
+    // Populate agent and customer info
     await chat.populate('agent', 'name email');
+    await chat.populate('customer', 'name email');
 
-    res.json({ 
+    res.json({
       chat,
       message: 'Chat claimed successfully' 
     });
@@ -387,13 +395,39 @@ router.post('/upload', chatUpload.single('file'), async (req, res) => {
       size: req.file.size
     };
 
-    res.json({ 
+    res.json({
       message: 'File uploaded successfully',
       file: fileData,
       ...fileData  // Also send at top level for backward compatibility
     });
   } catch (error) {
     console.error('❌ Error uploading file:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Download file endpoint with proper headers
+router.get('/download/:filename', (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const filepath = path.join(__dirname, '../uploads/chat-attachments', filename);
+
+    // Check if file exists
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    // Get original filename from the stored filename (remove timestamp prefix)
+    const originalName = filename.split('-').slice(1).join('-');
+
+    // Set headers for download
+    res.setHeader('Content-Disposition', `attachment; filename="${originalName}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+
+    // Send file
+    res.sendFile(filepath);
+  } catch (error) {
+    console.error('❌ Error downloading file:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

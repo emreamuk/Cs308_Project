@@ -9,6 +9,8 @@ function SalesManager() {
   const [products, setProducts] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [discount, setDiscount] = useState(0);
+  const [newPrice, setNewPrice] = useState('');
+  const [selectedProductForPrice, setSelectedProductForPrice] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [analytics, setAnalytics] = useState(null);
@@ -86,6 +88,31 @@ function SalesManager() {
     } catch (error) {
       console.error('Error removing discount:', error);
       alert('Failed to remove discount.');
+    }
+  };
+
+  const setProductPrice = async () => {
+    if (!selectedProductForPrice) {
+      alert('Please select a product');
+      return;
+    }
+    if (!newPrice || parseFloat(newPrice) <= 0) {
+      alert('Please enter a valid price');
+      return;
+    }
+
+    try {
+      await API.patch(`/sales/set-price/${selectedProductForPrice}`, {
+        price: parseFloat(newPrice)
+      });
+
+      alert('Price updated successfully!');
+      setNewPrice('');
+      setSelectedProductForPrice('');
+      fetchProducts();
+    } catch (error) {
+      console.error('Error setting price:', error);
+      alert(error.response?.data?.message || 'Failed to set price');
     }
   };
 
@@ -224,6 +251,39 @@ function SalesManager() {
   return (
     <div className="sales-manager-claude">
       <h1>Sales Manager Dashboard</h1>
+
+      {/* Set Price Section */}
+      <div className="section">
+        <h2>Set Product Price</h2>
+        <select
+          value={selectedProductForPrice}
+          onChange={(e) => setSelectedProductForPrice(e.target.value)}
+          style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
+        >
+          <option value="">-- Select a Product --</option>
+          {products.map(p => (
+            <option key={p._id} value={p._id}>
+              {p.name} - Current Price: ${p.price}
+            </option>
+          ))}
+        </select>
+
+        <div className="price-input-group" style={{ marginBottom: '10px' }}>
+          <input
+            type="number"
+            placeholder="New Price"
+            value={newPrice}
+            onChange={(e) => setNewPrice(e.target.value)}
+            step="0.01"
+            min="0"
+            style={{ width: '100%', padding: '8px' }}
+          />
+        </div>
+
+        <button onClick={setProductPrice} className="btn-primary" style={{ width: '100%' }}>
+          Set Price
+        </button>
+      </div>
 
       {/* Apply Discount Section */}
       <div className="section">

@@ -93,6 +93,24 @@ const Invoice = () => {
     day: 'numeric'
   });
 
+  // Calculate values based on whether we have a server invoice or local orderData
+  let subtotal, tax, totalAmount;
+
+  if (invoice) {
+    subtotal = invoice.subtotal;
+    tax = invoice.tax;
+    totalAmount = invoice.totalAmount;
+  } else if (orderData) {
+    // Calculate from orderData
+    subtotal = orderData.total;
+    tax = subtotal * 0.18; // 18% VAT
+    totalAmount = subtotal + tax;
+  } else {
+    subtotal = 0;
+    tax = 0;
+    totalAmount = 0;
+  }
+
   return (
     <div className="invoice-page">
       <div className="invoice-container">
@@ -141,7 +159,11 @@ const Invoice = () => {
         <div className="invoice-total">
           <div className="total-row">
             <span>Subtotal:</span>
-            <span>${ (invoice ? invoice.subtotal : orderData.total).toFixed(2) }</span>
+            <span>${subtotal.toFixed(2)}</span>
+          </div>
+          <div className="total-row">
+            <span>Tax (18% VAT):</span>
+            <span>${tax.toFixed(2)}</span>
           </div>
           <div className="total-row">
             <span>Shipping:</span>
@@ -149,7 +171,7 @@ const Invoice = () => {
           </div>
           <div className="total-row grand-total">
             <span><strong>Total Paid:</strong></span>
-            <span><strong>${ (invoice ? invoice.totalAmount : orderData.total).toFixed(2) }</strong></span>
+            <span><strong>${totalAmount.toFixed(2)}</strong></span>
           </div>
         </div>
 

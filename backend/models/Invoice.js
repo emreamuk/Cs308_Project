@@ -4,8 +4,12 @@ const mongoose = require('mongoose');
 const invoiceSchema = new mongoose.Schema({
   invoiceNumber: {
     type: String,
-    required: true,
-    unique: true
+    unique: true,
+    default: function() {
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+      return `INV-${timestamp}-${random}`;
+    }
   },
   order: {
     type: mongoose.Schema.Types.ObjectId,
@@ -65,8 +69,5 @@ const invoiceSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
-// Invoice number is generated in the order creation route
-// No pre-save hook needed since we set it explicitly
 
 module.exports = mongoose.model('Invoice', invoiceSchema);

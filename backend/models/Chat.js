@@ -57,12 +57,10 @@ const chatSchema = new mongoose.Schema({
       type: String,
       default: ''
     },
-    attachments: [{
-      filename: String,
-      path: String,
-      mimetype: String,
-      size: Number
-    }],
+    attachments: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: []
+    },
     timestamp: {
       type: Date,
       default: Date.now

@@ -408,17 +408,25 @@ const CustomerChat = () => {
                       <div className="message-sender">{msg.senderName}</div>
                       <p className="message-text">{msg.text || msg.message}</p>
                       
-                      {msg.attachments && msg.attachments.map((att, i) => (
-                        <div key={i} className="message-attachment">
-                          {att.type === 'image' ? (
-                            <img src={`http://localhost:5001${att.url}`} alt={att.filename} />
-                          ) : (
-                            <a href={`http://localhost:5001${att.url}`} target="_blank" rel="noopener noreferrer">
-                              📎 {att.filename}
-                            </a>
-                          )}
-                        </div>
-                      ))}
+                      {msg.attachments && msg.attachments.map((att, i) => {
+                        if (!att.url) return null;
+                        const filename = att.url.split('/').pop();
+                        return (
+                          <div key={i} className="message-attachment">
+                            {att.type === 'image' ? (
+                              <img src={`http://localhost:5001${att.url}`} alt={att.filename} />
+                            ) : (
+                              <a
+                                href={`http://localhost:5001/api/chat/download/${filename}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                📎 {att.filename}
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })}
                       
                       <div className="message-time">{formatTime(msg.timestamp)}</div>
                     </div>

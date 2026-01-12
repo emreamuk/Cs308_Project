@@ -556,7 +556,13 @@ const ProductManager = () => {
                 <div className="delivery-header">
                   <div>
                     <h3>Delivery #{delivery.deliveryId.slice(-8)}</h3>
+                    <p style={{ fontSize: '0.85em', color: '#888' }}>
+                      Delivery ID: {delivery.deliveryId}
+                    </p>
                     <p>Customer: {delivery.customerName} ({delivery.customerEmail})</p>
+                    <p style={{ fontSize: '0.9em', color: '#666' }}>
+                      Customer ID: {delivery.customerId}
+                    </p>
                     <p className="delivery-date">
                       {new Date(delivery.createdAt).toLocaleDateString()}
                     </p>
@@ -577,7 +583,12 @@ const ProductManager = () => {
                 <div className="delivery-details">
                   <h4>Products:</h4>
                   {delivery.products.map((item, idx) => (
-                    <p key={idx}>• {item.productName} x {item.quantity} - ${item.price.toFixed(2)}</p>
+                    <div key={idx} style={{ marginBottom: '8px' }}>
+                      <p>• {item.productName} x {item.quantity} - ${item.price.toFixed(2)}</p>
+                      <p style={{ fontSize: '0.9em', color: '#666', marginLeft: '20px' }}>
+                        Product ID: {item.productId}
+                      </p>
+                    </div>
                   ))}
                   <p><strong>Total:</strong> ${delivery.totalPrice.toFixed(2)}</p>
                   <p><strong>Address:</strong> {delivery.deliveryAddress}</p>

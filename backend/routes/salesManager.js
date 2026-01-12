@@ -70,6 +70,45 @@ router.post('/discount', auth, checkRole('sales_manager'), async (req, res) => {
 });
 
 
+// Set product price
+router.patch('/set-price/:productId', auth, checkRole('sales_manager'), async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { price } = req.body;
+
+    if (!price || price <= 0) {
+      return res.status(400).json({ message: 'Valid price is required' });
+    }
+
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Update the price
+    product.price = parseFloat(price);
+    // If there was a discount, clear it since we're setting a new base price
+    product.originalPrice = parseFloat(price);
+    product.discount = 0;
+
+    await product.save();
+
+    res.json({
+      message: 'Price updated successfully',
+      product: {
+        _id: product._id,
+        name: product.name,
+        price: product.price,
+        originalPrice: product.originalPrice
+      }
+    });
+  } catch (error) {
+    console.error('Error setting price:', error);
+    res.status(500).json({ message: 'Error setting price' });
+  }
+});
+
 // Remove discount from products
 
 router.post('/undiscount', auth, checkRole('sales_manager'), async (req, res) => {

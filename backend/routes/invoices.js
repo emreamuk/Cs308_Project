@@ -34,6 +34,12 @@ router.post('/', auth, async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
+    // Check authorization - user can only create invoices for their own orders (unless sales_manager)
+    if (req.user.role !== 'sales_manager' &&
+        order.user._id.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized to create invoice for this order' });
+    }
+
     // Calculate invoice items with totals
     const invoiceItems = order.orderItems.map(item => ({
       product: item.product._id,
@@ -231,6 +237,81 @@ router.get('/stats/summary', auth, checkRole('sales_manager'), async (req, res) 
   } catch (error) {
     console.error('Get invoice stats error:', error);
     res.status(500).json({ message: 'Server error while fetching invoice statistics' });
+  }
+});
+
+// Create invoices for all orders without invoices (admin/sales_manager only)
+router.post('/create-missing', auth, checkRole('sales_manager'), async (req, res) => {
+  try {
+    // Find all orders that don't have invoices
+    const orders = await Order.find({})
+      .populate('orderItems.product')
+      .populate('user');
+
+    let created = 0;
+    let skipped = 0;
+    let errors = 0;
+
+    for (const order of orders) {
+      try {
+        // Check if invoice already exists
+        const existingInvoice = await Invoice.findOne({ order: order._id });
+        if (existingInvoice) {
+          skipped++;
+          continue;
+        }
+
+        // Calculate invoice items
+        const invoiceItems = order.orderItems.map(item => ({
+          product: item.product._id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          total: item.quantity * item.price
+        }));
+
+        const subtotal = invoiceItems.reduce((sum, item) => sum + item.total, 0);
+        const tax = subtotal * 0.18;
+        const totalAmount = subtotal + tax;
+
+        // Create invoice
+        const invoice = new Invoice({
+          order: order._id,
+          customer: order.user._id,
+          customerInfo: {
+            name: order.user.name,
+            email: order.user.email,
+            address: order.deliveryAddress,
+            taxID: order.user.taxID || ''
+          },
+          items: invoiceItems,
+          subtotal,
+          discount: 0,
+          tax,
+          totalAmount,
+          invoiceDate: order.createdAt,
+          status: 'paid'
+        });
+
+        await invoice.save();
+        created++;
+      } catch (err) {
+        console.error(`Error creating invoice for order ${order._id}:`, err);
+        errors++;
+      }
+    }
+
+    res.json({
+      message: 'Invoice creation completed',
+      created,
+      skipped,
+      errors,
+      total: orders.length
+    });
+
+  } catch (error) {
+    console.error('Create missing invoices error:', error);
+    res.status(500).json({ message: 'Server error while creating invoices' });
   }
 });
 

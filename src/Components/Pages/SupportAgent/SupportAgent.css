@@ -499,6 +499,7 @@
   padding: 12px 16px;
   border-radius: 18px;
   word-wrap: break-word;
+  position: relative;
 }
 
 .chat-message.customer .message-bubble {
@@ -544,7 +545,18 @@
 }
 
 .message-attachment a {
-  color: inherit;
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+  pointer-events: all;
+  position: relative;
+  z-index: 100;
+  display: inline-block;
+  font-weight: 600;
+}
+
+.message-attachment a:hover {
+  color: #0056b3;
   text-decoration: underline;
 }
 

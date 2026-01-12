@@ -168,7 +168,38 @@ const Orders = () => {
       navigate('/invoice', { state: { invoice } });
     } catch (error) {
       if (error.response?.status === 404) {
-        alert('Invoice not found for this order');
+        // Invoice not found - try to create it first, then retry
+        console.log('Invoice not found, attempting to create it...');
+        try {
+          // Create invoice for this specific order
+          await API.post('/invoices', { orderId });
+          console.log('Invoice created successfully, fetching again...');
+
+          // Retry fetching the invoice
+          const retryResp = await API.get(`/invoices/order/${orderId}`);
+          const invoice = retryResp.data;
+          navigate('/invoice', { state: { invoice } });
+        } catch (createError) {
+          console.error('Failed to create invoice:', createError);
+          // If creation fails, show the order as a fallback invoice
+          const order = orders.find(o => o._id === orderId);
+          if (order) {
+            // Generate invoice data from order
+            const invoiceData = {
+              items: order.orderItems.map(item => ({
+                name: item.product?.name || item.name,
+                qty: item.quantity,
+                price: item.price,
+                product: { name: item.product?.name || item.name, price: item.price }
+              })),
+              total: order.totalPrice,
+              address: order.deliveryAddress
+            };
+            navigate('/invoice', { state: { orderData: invoiceData } });
+          } else {
+            alert('Invoice not found and could not be created');
+          }
+        }
       } else if (error.response?.status === 403) {
         alert('You are not authorized to view this invoice');
       } else {
