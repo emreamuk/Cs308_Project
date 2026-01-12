@@ -146,6 +146,18 @@ router.post('/request', async (req, res) => {
       });
     }
 
+    // Prevent duplicate pending/approved refund requests for same order/product by same user
+    const existing = await Refund.findOne({
+      order: orderId,
+      product: productId,
+      user: req.user.id,
+      status: { $in: ['pending', 'approved'] }
+    });
+
+    if (existing) {
+      return res.status(400).json({ message: 'A refund request for this item already exists' });
+    }
+
     // Calculate refund amount (uses the price paid during purchase)
     const refundAmount = orderItem.price * quantity;
 

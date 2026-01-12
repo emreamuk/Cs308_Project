@@ -144,16 +144,48 @@ router.get('/my-orders', auth, async (req, res) => {
       .populate('orderItems.product')
       .sort({ createdAt: -1 });
 
+    // For better UX: include pending refund information per order item
+    const orderIds = orders.map(o => o._id);
+
+    // Fetch pending/approved refunds by this user for these orders
+    const Refund = require('../models/Refund');
+    const refunds = await Refund.find({
+      order: { $in: orderIds },
+      user: req.user.id,
+      status: { $in: ['pending', 'approved'] }
+    });
+
+    // Build lookup of pending quantities per orderId+productId
+    const pendingMap = {};
+    for (const r of refunds) {
+      const key = `${r.order.toString()}_${r.product.toString()}`;
+      pendingMap[key] = (pendingMap[key] || 0) + (r.quantity || 0);
+    }
+
     // ✅ Mask credit card numbers before sending to client
     const ordersWithMaskedCards = orders.map(order => {
       const orderObj = order.toObject();
-      
+
       if (orderObj.paymentInfo && orderObj.paymentInfo.creditCardNumber) {
         // Decrypt and then mask
         const decrypted = decryptCreditCard(orderObj.paymentInfo.creditCardNumber);
         orderObj.paymentInfo.creditCardNumber = maskCreditCard(decrypted);
       }
-      
+
+      // Attach pendingRefundQuantity and availableForRefund to each order item
+      orderObj.orderItems = orderObj.orderItems.map(item => {
+        const prodId = item.product && item.product._id ? item.product._id : item.product;
+        const key = `${orderObj._id}_${prodId}`;
+        const pendingQty = pendingMap[key] || 0;
+        const refundedQty = item.refundedQuantity || 0;
+        const available = (item.quantity || 0) - refundedQty - pendingQty;
+        return {
+          ...item,
+          pendingRefundQuantity: pendingQty,
+          availableForRefund: available
+        };
+      });
+
       return orderObj;
     });
 

@@ -235,7 +235,7 @@ const Orders = () => {
                         <h4>{item.product?.name || item.name}</h4>
                         <p className="item-quantity">Quantity: {item.quantity}</p>
                         <p className="item-price">${(item.price * item.quantity).toFixed(2)}</p>
-                        {canRequestRefund(order) && (
+                        {canRequestRefund(order) && (item.availableForRefund > 0) && (
                           <button
                             className="refund-btn"
                             onClick={() => handleRequestRefund(order, item)}
@@ -304,13 +304,13 @@ const Orders = () => {
                 <p>Ordered Quantity: {selectedProduct.quantity}</p>
               </div>
 
-              <div className="refund-form">
+                <div className="refund-form">
                 <label>
                   Quantity to Refund:
                   <input
                     type="number"
                     min="1"
-                    max={selectedProduct.quantity}
+                    max={selectedProduct.availableForRefund || selectedProduct.quantity}
                     value={refundQuantity}
                     onChange={(e) => setRefundQuantity(parseInt(e.target.value))}
                   />
